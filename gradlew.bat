@@ -1,0 +1,1 @@
+echo Simulated gradlew.bat
