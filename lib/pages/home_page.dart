@@ -7,8 +7,13 @@ import 'image_editor_page.dart';
 import 'background_remover_page.dart';
 import 'file_scanner_page.dart';
 import '../nova_assistant_page.dart';
+import '../ai_assistant.dart';
 
 class HomePage extends StatefulWidget {
+  final NovaAssistant novaAssistant;
+
+  HomePage({required this.novaAssistant});
+
   @override
   _HomePageState createState() => _HomePageState();
 }
@@ -100,10 +105,12 @@ class _HomePageState extends State<HomePage> {
           SpeedDialChild(
             child: Icon(Icons.mic),
             label: 'Voice Assistant',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => NovaAssistantPage()),
-            ),
+            onTap: () async {
+              String? command = await widget.novaAssistant.listen();
+              if (command != null) {
+                await widget.novaAssistant.handleCommand(command);
+              }
+            },
           ),
           SpeedDialChild(
             child: Icon(Icons.image),
@@ -112,6 +119,16 @@ class _HomePageState extends State<HomePage> {
               context,
               MaterialPageRoute(builder: (context) => ImageEditorPage()),
             ),
+          ),
+          SpeedDialChild(
+            child: Icon(Icons.auto_awesome),
+            label: 'Advanced Commands',
+            onTap: () async {
+              String? command = await widget.novaAssistant.listen();
+              if (command != null) {
+                await widget.novaAssistant.handleAdvancedCommand(command);
+              }
+            },
           ),
         ],
       ),
@@ -166,7 +183,8 @@ class HomeContent extends StatelessWidget {
                 description: 'Remove backgrounds instantly',
                 onTap: () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => BackgroundRemoverPage()),
+                  MaterialPageRoute(
+                      builder: (context) => BackgroundRemoverPage()),
                 ),
               ),
               FeatureCard(

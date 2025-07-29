@@ -92,6 +92,43 @@ class EditNovaHandler(BaseHTTPRequestHandler):
                     "message": "Invalid credentials"
                 }
                 self.wfile.write(json.dumps(response_data).encode())
+        
+        elif parsed_path.path == '/api/create-poster':
+            theme = data.get('theme', 'default')
+            response_data = {
+                "status": "success", 
+                "message": f"Poster created with theme: {theme}"
+            }
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self._set_cors_headers()
+            self.end_headers()
+            self.wfile.write(json.dumps(response_data).encode())
+
+        elif parsed_path.path == '/api/generate-art':
+            description = data.get('description', 'abstract')
+            response_data = {
+                "status": "success", 
+                "message": f"AI art generated for description: {description}"
+            }
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self._set_cors_headers()
+            self.end_headers()
+            self.wfile.write(json.dumps(response_data).encode())
+
+        elif parsed_path.path == '/api/translate-text':
+            text = data.get('text', '')
+            language = data.get('language', 'en')
+            response_data = {
+                "status": "success", 
+                "message": f"Text translated to {language}: {text}"
+            }
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self._set_cors_headers()
+            self.end_headers()
+            self.wfile.write(json.dumps(response_data).encode())
         else:
             self.send_response(404)
             self.end_headers()
@@ -107,6 +144,9 @@ def run_server():
     print("  GET  /api/usage")
     print("  POST /api/toggle-feature")
     print("  POST /api/login")
+    print("  POST /api/create-poster")
+    print("  POST /api/generate-art")
+    print("  POST /api/translate-text")
     print("Server running at http://localhost:5001")
     httpd.serve_forever()
 

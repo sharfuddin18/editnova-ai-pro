@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'pages/home_page.dart';
 import 'pages/splash_screen.dart';
 import 'utils/theme.dart';
+import 'ai_assistant.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -12,6 +13,8 @@ void main() async {
 }
 
 class EditNovaApp extends StatelessWidget {
+  final NovaAssistant novaAssistant = NovaAssistant();
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -19,7 +22,7 @@ class EditNovaApp extends StatelessWidget {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.system,
-      home: SplashScreen(),
+      home: HomePage(novaAssistant: novaAssistant),
       debugShowCheckedModeBanner: false,
     );
   }

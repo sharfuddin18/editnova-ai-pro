@@ -87,6 +87,78 @@ const server = http.createServer((req, res) => {
       }
     });
 
+  } else if (path === '/api/create-poster' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => {
+      body += chunk.toString();
+    });
+
+    req.on('end', () => {
+      try {
+        const data = JSON.parse(body);
+        const theme = data.theme || 'default';
+
+        const responseData = {
+          status: 'success',
+          message: `Poster created with theme: ${theme}`
+        };
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(responseData));
+      } catch (error) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ status: 'error', message: 'Invalid JSON' }));
+      }
+    });
+
+  } else if (path === '/api/generate-art' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => {
+      body += chunk.toString();
+    });
+
+    req.on('end', () => {
+      try {
+        const data = JSON.parse(body);
+        const description = data.description || 'abstract';
+
+        const responseData = {
+          status: 'success',
+          message: `AI art generated for description: ${description}`
+        };
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(responseData));
+      } catch (error) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ status: 'error', message: 'Invalid JSON' }));
+      }
+    });
+
+  } else if (path === '/api/translate-text' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => {
+      body += chunk.toString();
+    });
+
+    req.on('end', () => {
+      try {
+        const data = JSON.parse(body);
+        const text = data.text || '';
+        const language = data.language || 'en';
+
+        const responseData = {
+          status: 'success',
+          message: `Text translated to ${language}: ${text}`
+        };
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(responseData));
+      } catch (error) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ status: 'error', message: 'Invalid JSON' }));
+      }
+    });
   } else {
     res.writeHead(404, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ status: 'error', message: 'Not found' }));
@@ -100,5 +172,8 @@ server.listen(PORT, () => {
   console.log('  GET  /api/usage');
   console.log('  POST /api/toggle-feature');
   console.log('  POST /api/login');
+  console.log('  POST /api/create-poster');
+  console.log('  POST /api/generate-art');
+  console.log('  POST /api/translate-text');
   console.log(`Server running at http://localhost:${PORT}`);
 });
