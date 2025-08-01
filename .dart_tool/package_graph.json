@@ -31,7 +31,7 @@
     },
     {
       "name": "flutter_lints",
-      "version": "3.0.2",
+      "version": "6.0.0",
       "dependencies": [
         "lints"
       ]
@@ -66,7 +66,7 @@
     },
     {
       "name": "flutter_tts",
-      "version": "3.8.5",
+      "version": "4.2.3",
       "dependencies": [
         "flutter",
         "flutter_web_plugins"
@@ -74,25 +74,25 @@
     },
     {
       "name": "speech_to_text",
-      "version": "6.6.2",
+      "version": "7.2.0",
       "dependencies": [
         "clock",
         "flutter",
         "flutter_web_plugins",
-        "js",
         "json_annotation",
         "meta",
         "pedantic",
-        "speech_to_text_macos",
-        "speech_to_text_platform_interface"
+        "speech_to_text_platform_interface",
+        "web"
       ]
     },
     {
       "name": "lottie",
-      "version": "2.7.0",
+      "version": "3.3.1",
       "dependencies": [
         "archive",
         "flutter",
+        "http",
         "path",
         "vector_math"
       ]
@@ -114,7 +114,7 @@
     },
     {
       "name": "image",
-      "version": "4.3.0",
+      "version": "4.5.4",
       "dependencies": [
         "archive",
         "meta",
@@ -130,20 +130,22 @@
     },
     {
       "name": "file_picker",
-      "version": "6.2.1",
+      "version": "10.2.1",
       "dependencies": [
+        "cross_file",
         "ffi",
         "flutter",
         "flutter_plugin_android_lifecycle",
         "flutter_web_plugins",
         "path",
         "plugin_platform_interface",
+        "web",
         "win32"
       ]
     },
     {
       "name": "permission_handler",
-      "version": "11.4.0",
+      "version": "12.0.1",
       "dependencies": [
         "flutter",
         "meta",
@@ -210,7 +212,7 @@
     },
     {
       "name": "google_mobile_ads",
-      "version": "4.0.0",
+      "version": "6.0.0",
       "dependencies": [
         "flutter",
         "meta",
@@ -233,7 +235,7 @@
     },
     {
       "name": "lints",
-      "version": "3.0.0",
+      "version": "6.0.0",
       "dependencies": []
     },
     {
@@ -407,8 +409,8 @@
       ]
     },
     {
-      "name": "js",
-      "version": "0.7.2",
+      "name": "web",
+      "version": "1.1.1",
       "dependencies": []
     },
     {
@@ -424,15 +426,6 @@
       ]
     },
     {
-      "name": "speech_to_text_macos",
-      "version": "1.1.0",
-      "dependencies": [
-        "flutter",
-        "plugin_platform_interface",
-        "speech_to_text_platform_interface"
-      ]
-    },
-    {
       "name": "speech_to_text_platform_interface",
       "version": "2.3.0",
       "dependencies": [
@@ -443,10 +436,11 @@
     },
     {
       "name": "archive",
-      "version": "3.6.1",
+      "version": "4.0.7",
       "dependencies": [
         "crypto",
-        "path"
+        "path",
+        "posix"
       ]
     },
     {
@@ -456,6 +450,14 @@
         "collection",
         "meta",
         "petitparser"
+      ]
+    },
+    {
+      "name": "cross_file",
+      "version": "0.3.4+2",
+      "dependencies": [
+        "meta",
+        "web"
       ]
     },
     {
@@ -521,7 +523,7 @@
     },
     {
       "name": "permission_handler_android",
-      "version": "12.1.0",
+      "version": "13.0.1",
       "dependencies": [
         "flutter",
         "permission_handler_platform_interface"
@@ -700,11 +702,6 @@
       ]
     },
     {
-      "name": "web",
-      "version": "1.1.1",
-      "dependencies": []
-    },
-    {
       "name": "http_parser",
       "version": "4.1.2",
       "dependencies": [
@@ -716,7 +713,7 @@
     },
     {
       "name": "webview_flutter",
-      "version": "4.9.0",
+      "version": "4.13.0",
       "dependencies": [
         "flutter",
         "webview_flutter_android",
@@ -736,9 +733,10 @@
     },
     {
       "name": "webview_flutter_android",
-      "version": "3.16.9",
+      "version": "4.8.2",
       "dependencies": [
         "flutter",
+        "meta",
         "webview_flutter_platform_interface"
       ]
     },
@@ -746,6 +744,15 @@
       "name": "sky_engine",
       "version": "0.0.0",
       "dependencies": []
+    },
+    {
+      "name": "posix",
+      "version": "6.0.3",
+      "dependencies": [
+        "ffi",
+        "meta",
+        "path"
+      ]
     },
     {
       "name": "crypto",
@@ -800,14 +807,6 @@
         "flutter",
         "http",
         "plugin_platform_interface"
-      ]
-    },
-    {
-      "name": "cross_file",
-      "version": "0.3.4+2",
-      "dependencies": [
-        "meta",
-        "web"
       ]
     },
     {
