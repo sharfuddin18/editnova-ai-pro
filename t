@@ -1,0 +1,28 @@
+* [33m886fb8b[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Update checksum and fileHashes
+* [33m246c3b8[m “Enable Flutter web support and add web assets
+* [33m6ded551[m - Update Gradle from 8.9 to 8.14.2 (latest stable) - Configure DevContainer for standardized development - Update GitHub Actions workflow with Deno integration - Refresh build cache and file hashes - Update VS Code workspace settings
+* [33m881cd07[m Create devcontainer.json
+* [33ma7fd22d[m Create deno.yml
+* [33mfce1dd9[m auto-commit for e1a89535-fcc2-4471-bc45-75df65185858
+* [33m9ae1664[m Auto-commit before changes
+* [33m7b5f04e[m auto-commit for 4d0f40da-29ef-46e1-9b50-2777db12fb91
+* [33mb1d99f6[m auto-commit for 4633565e-c71f-4256-8e16-f072e351f622
+* [33ma7f1b76[m auto-commit for 2ac8daee-9865-4721-a2ef-75ad5c674ed2
+* [33me956f02[m Initial commit
+* [33m26319a9[m Auto-generated changes
+* [33m75b9fe2[m auto-commit for 85107417-eb72-466a-afe3-60fcbac4af70
+* [33ma727d3c[m auto-commit for db35223f-04cd-4a91-880c-3536c80f37f5
+* [33mc67020a[m auto-commit for 5d05de59-b508-4fc7-a3a8-1e76de73fd6f
+* [33m2bb5b3b[m auto-commit for de6b6eac-199b-4f1e-afa2-0676c08c287b
+* [33m5032a09[m auto-commit for e4e6054d-e900-45db-907e-4e29979d1608
+* [33m93da72b[m Initial commit
+* [33m92a633b[m Initial commit for Editnova-Ai project
+* [33m461d0bd[m Replace Python server with Node.js API server
+* [33mc8cae10[m Create simplified Flask alternative for WebContainer
+* [33m65a7250[m Fix Environment Setup Errors
+* [33m06a0076[m Complete EditNova App Build
+* [33mf124083[m Update build output cleanup lock file
+* [33madc3173[m Add Gradle 8.9 lock files and update version in cache.properties
+* [33m74c2c3e[m Co-authored-by: sharfuddin18 <sharfuddinahmed315@gmail.com>
+* [33m433d0aa[m Add files via upload
+* [33md80484c[m Initial commit
