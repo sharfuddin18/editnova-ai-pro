@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:animated_text_kit/animated_text_kit.dart';
+import 'package:editnova/ai_assistant.dart';
 import 'home_page.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -12,6 +13,9 @@ class _SplashScreenState extends State<SplashScreen>
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
 
+  // Use the imported NovaAssistant class instance
+  final NovaAssistant novaAssistantInstance = NovaAssistant();
+
   @override
   void initState() {
     super.initState();
@@ -20,12 +24,13 @@ class _SplashScreenState extends State<SplashScreen>
       vsync: this,
     );
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(_controller);
-    
     _controller.forward();
-    
+
     Future.delayed(Duration(seconds: 3), () {
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => HomePage()),
+        MaterialPageRoute(
+          builder: (context) => HomePage(novaAssistant: novaAssistantInstance),
+        ),
       );
     });
   }
