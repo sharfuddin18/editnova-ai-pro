@@ -73,11 +73,11 @@ class _AIArtGeneratorPageState extends State<AIArtGeneratorPage>
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         await Future.delayed(Duration(seconds: 3)); // Simulate generation time
-        
+
         setState(() {
           _generatedArtId = data['artId'];
         });
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('AI artwork generated successfully! 🎨'),
@@ -104,7 +104,8 @@ class _AIArtGeneratorPageState extends State<AIArtGeneratorPage>
       appBar: AppBar(
         title: Text(
           'AI Art Generator',
-          style: TextStyle(fontFamily: 'Montserrat', fontWeight: FontWeight.bold),
+          style:
+              TextStyle(fontFamily: 'Montserrat', fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.purple,
         actions: [
@@ -199,7 +200,8 @@ class _AIArtGeneratorPageState extends State<AIArtGeneratorPage>
                       controller: _promptController,
                       maxLines: 3,
                       decoration: InputDecoration(
-                        hintText: 'e.g., A majestic mountain landscape with flowing waterfalls and vibrant sunset colors...',
+                        hintText:
+                            'e.g., A majestic mountain landscape with flowing waterfalls and vibrant sunset colors...',
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -214,17 +216,22 @@ class _AIArtGeneratorPageState extends State<AIArtGeneratorPage>
                       spacing: 8,
                       runSpacing: 4,
                       children: [
-                        'Fantasy castle', 'Cyberpunk city', 'Peaceful garden',
-                        'Abstract colors', 'Ocean waves', 'Space nebula'
-                      ].map((prompt) => 
-                        GestureDetector(
-                          onTap: () => _promptController.text = prompt,
-                          child: Chip(
-                            label: Text(prompt, style: TextStyle(fontSize: 10)),
-                            backgroundColor: Colors.purple.shade100,
-                          ),
-                        )
-                      ).toList(),
+                        'Fantasy castle',
+                        'Cyberpunk city',
+                        'Peaceful garden',
+                        'Abstract colors',
+                        'Ocean waves',
+                        'Space nebula'
+                      ]
+                          .map((prompt) => GestureDetector(
+                                onTap: () => _promptController.text = prompt,
+                                child: Chip(
+                                  label: Text(prompt,
+                                      style: TextStyle(fontSize: 10)),
+                                  backgroundColor: Colors.purple.shade100,
+                                ),
+                              ))
+                          .toList(),
                     ),
                   ],
                 ),
@@ -262,14 +269,17 @@ class _AIArtGeneratorPageState extends State<AIArtGeneratorPage>
                         final style = _artStyles[index];
                         final isSelected = _selectedStyle == style.name;
                         return GestureDetector(
-                          onTap: () => setState(() => _selectedStyle = style.name),
+                          onTap: () =>
+                              setState(() => _selectedStyle = style.name),
                           child: Container(
                             decoration: BoxDecoration(
-                              color: isSelected 
-                                ? style.color.withOpacity(0.2)
-                                : Colors.grey.shade100,
+                              color: isSelected
+                                  ? style.color.withOpacity(0.2)
+                                  : Colors.grey.shade100,
                               border: Border.all(
-                                color: isSelected ? style.color : Colors.grey.shade300,
+                                color: isSelected
+                                    ? style.color
+                                    : Colors.grey.shade300,
                                 width: 2,
                               ),
                               borderRadius: BorderRadius.circular(8),
@@ -287,8 +297,12 @@ class _AIArtGeneratorPageState extends State<AIArtGeneratorPage>
                                   style.name,
                                   style: TextStyle(
                                     fontSize: 10,
-                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                    color: isSelected ? style.color : Colors.grey.shade600,
+                                    fontWeight: isSelected
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                    color: isSelected
+                                        ? style.color
+                                        : Colors.grey.shade600,
                                   ),
                                   textAlign: TextAlign.center,
                                 ),
@@ -311,16 +325,16 @@ class _AIArtGeneratorPageState extends State<AIArtGeneratorPage>
               height: 56,
               child: ElevatedButton.icon(
                 onPressed: _isGenerating ? null : _generateArt,
-                icon: _isGenerating 
-                  ? SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation(Colors.white),
-                      ),
-                    )
-                  : Icon(Icons.auto_awesome),
+                icon: _isGenerating
+                    ? SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation(Colors.white),
+                        ),
+                      )
+                    : Icon(Icons.auto_awesome),
                 label: Text(
                   _isGenerating ? 'Generating Artwork...' : 'Generate AI Art',
                   style: TextStyle(
@@ -360,7 +374,10 @@ class _AIArtGeneratorPageState extends State<AIArtGeneratorPage>
                         height: 300,
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [Colors.purple.shade100, Colors.pink.shade100],
+                            colors: [
+                              Colors.purple.shade100,
+                              Colors.pink.shade100
+                            ],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
@@ -504,8 +521,10 @@ class _AIArtGeneratorPageState extends State<AIArtGeneratorPage>
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          Colors.primaries[index % Colors.primaries.length].shade200,
-                          Colors.primaries[index % Colors.primaries.length].shade400,
+                          Colors.primaries[index % Colors.primaries.length]
+                              .shade200,
+                          Colors.primaries[index % Colors.primaries.length]
+                              .shade400,
                         ],
                       ),
                       borderRadius: BorderRadius.circular(8),
