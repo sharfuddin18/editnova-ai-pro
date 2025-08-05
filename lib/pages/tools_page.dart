@@ -6,7 +6,6 @@ import '../pages/ai_art_generator_page.dart';
 import '../pages/poster_creator_page.dart';
 import '../pages/text_translator_page.dart';
 import '../pages/ocr_scanner_page.dart';
-import '../pages/batch_processor_page.dart';
 
 class ToolsPage extends StatefulWidget {
   @override
@@ -32,7 +31,8 @@ class _ToolsPageState extends State<ToolsPage> with TickerProviderStateMixin {
 
   Future<void> _loadToolStats() async {
     try {
-      final response = await http.get(Uri.parse('http://localhost:5001/api/usage'));
+      final response =
+          await http.get(Uri.parse('http://localhost:5001/api/usage'));
       if (response.statusCode == 200) {
         setState(() {
           _toolStats = json.decode(response.body);
@@ -349,10 +349,14 @@ class _ToolsPageState extends State<ToolsPage> with TickerProviderStateMixin {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildStatItem('Images', '${_toolStats["images_edited"] ?? 0}', Icons.image),
-                _buildStatItem('AI Art', '${_toolStats["ai_art_generated"] ?? 0}', Icons.palette),
-                _buildStatItem('Translations', '${_toolStats["texts_translated"] ?? 0}', Icons.translate),
-                _buildStatItem('QR Codes', '${_toolStats["qr_codes_generated"] ?? 0}', Icons.qr_code),
+                _buildStatItem('Images', '${_toolStats["images_edited"] ?? 0}',
+                    Icons.image),
+                _buildStatItem('AI Art',
+                    '${_toolStats["ai_art_generated"] ?? 0}', Icons.palette),
+                _buildStatItem('Translations',
+                    '${_toolStats["texts_translated"] ?? 0}', Icons.translate),
+                _buildStatItem('QR Codes',
+                    '${_toolStats["qr_codes_generated"] ?? 0}', Icons.qr_code),
               ],
             ),
           ],
@@ -575,7 +579,8 @@ class _ToolsPageState extends State<ToolsPage> with TickerProviderStateMixin {
             Text('Premium Feature'),
           ],
         ),
-        content: Text('This feature requires a premium subscription. Upgrade now to unlock batch processing capabilities!'),
+        content: Text(
+            'This feature requires a premium subscription. Upgrade now to unlock batch processing capabilities!'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),

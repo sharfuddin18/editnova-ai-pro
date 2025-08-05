@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
@@ -13,7 +12,7 @@ class _QRGeneratorPageState extends State<QRGeneratorPage> {
   String _selectedType = 'URL';
   String? _generatedQRId;
   bool _isGenerating = false;
-  
+
   final List<QRType> _qrTypes = [
     QRType('URL', Icons.link, 'Website or link'),
     QRType('Text', Icons.text_fields, 'Plain text'),
@@ -86,7 +85,8 @@ class _QRGeneratorPageState extends State<QRGeneratorPage> {
       appBar: AppBar(
         title: Text(
           'QR Code Generator',
-          style: TextStyle(fontFamily: 'Montserrat', fontWeight: FontWeight.bold),
+          style:
+              TextStyle(fontFamily: 'Montserrat', fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.indigo,
         actions: [
@@ -119,25 +119,25 @@ class _QRGeneratorPageState extends State<QRGeneratorPage> {
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
-                      children: _qrTypes.map((type) => 
-                        ChoiceChip(
-                          avatar: Icon(type.icon, size: 18),
-                          label: Text(type.name),
-                          selected: _selectedType == type.name,
-                          onSelected: (selected) {
-                            if (selected) {
-                              setState(() => _selectedType = type.name);
-                              _textController.clear();
-                            }
-                          },
-                        )
-                      ).toList(),
+                      children: _qrTypes
+                          .map((type) => ChoiceChip(
+                                avatar: Icon(type.icon, size: 18),
+                                label: Text(type.name),
+                                selected: _selectedType == type.name,
+                                onSelected: (selected) {
+                                  if (selected) {
+                                    setState(() => _selectedType = type.name);
+                                    _textController.clear();
+                                  }
+                                },
+                              ))
+                          .toList(),
                     ),
                   ],
                 ),
               ),
             ),
-            
+
             SizedBox(height: 16),
 
             // Content Input
@@ -174,14 +174,17 @@ class _QRGeneratorPageState extends State<QRGeneratorPage> {
                       width: double.infinity,
                       child: ElevatedButton.icon(
                         onPressed: _isGenerating ? null : _generateQR,
-                        icon: _isGenerating 
-                          ? SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : Icon(Icons.qr_code),
-                        label: Text(_isGenerating ? 'Generating...' : 'Generate QR Code'),
+                        icon: _isGenerating
+                            ? SizedBox(
+                                width: 16,
+                                height: 16,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : Icon(Icons.qr_code),
+                        label: Text(_isGenerating
+                            ? 'Generating...'
+                            : 'Generate QR Code'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.indigo,
                           foregroundColor: Colors.white,
@@ -319,13 +322,20 @@ class _QRGeneratorPageState extends State<QRGeneratorPage> {
 
   String _getHintText() {
     switch (_selectedType) {
-      case 'URL': return 'https://example.com';
-      case 'Text': return 'Enter your text message here...';
-      case 'Email': return 'user@example.com';
-      case 'Phone': return '+1234567890';
-      case 'WiFi': return 'Network name and password';
-      case 'SMS': return 'Phone number and message';
-      default: return 'Enter content here...';
+      case 'URL':
+        return 'https://example.com';
+      case 'Text':
+        return 'Enter your text message here...';
+      case 'Email':
+        return 'user@example.com';
+      case 'Phone':
+        return '+1234567890';
+      case 'WiFi':
+        return 'Network name and password';
+      case 'SMS':
+        return 'Phone number and message';
+      default:
+        return 'Enter content here...';
     }
   }
 

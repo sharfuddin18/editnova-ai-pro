@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'pages/home_page.dart';
-import 'pages/splash_screen.dart';
 import 'utils/theme.dart';
 import 'ai_assistant.dart';
 
