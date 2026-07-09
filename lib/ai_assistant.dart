@@ -1,11 +1,21 @@
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
-import 'package:http/http.dart' as http;
 import 'dart:convert';
+
+import 'network/http_backend.dart';
 
 class NovaAssistant {
   final FlutterTts _flutterTts = FlutterTts();
   final stt.SpeechToText _speechToText = stt.SpeechToText();
+
+  final HttpBackend _backend;
+  final Uri _baseUri;
+
+  NovaAssistant({
+    HttpBackend? backend,
+    Uri? baseUri,
+  })  : _backend = backend ?? HttpBackendImpl(),
+        _baseUri = baseUri ?? Uri.parse('http://localhost:5001');
 
   Future<void> speak(String text) async {
     await _flutterTts.speak(text);
@@ -45,48 +55,55 @@ class NovaAssistant {
   Future<void> handleAdvancedCommand(String command) async {
     if (command.contains('create poster')) {
       await speak('Creating a poster. Please describe the theme.');
-      // Example: Call backend for poster creation
-      final response = await http.post(
-        Uri.parse('http://localhost:5001/api/create-poster'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'theme': 'default'}),
+
+      final response = await _backend.postJson(
+        _baseUri.replace(path: '/api/create-poster'),
+        body: const {'theme': 'default'},
       );
+
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        await speak(data['message']);
+        final decoded = _decodeJson(response.body);
+        await speak(decoded['message']?.toString() ?? 'Poster created');
       } else {
         await speak('Failed to create poster. Please try again.');
       }
     } else if (command.contains('generate art')) {
       await speak('Generating AI art. Please provide a description.');
-      // Example: Call backend for AI art generation
-      final response = await http.post(
-        Uri.parse('http://localhost:5001/api/generate-art'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'description': 'abstract'}),
+
+      final response = await _backend.postJson(
+        _baseUri.replace(path: '/api/generate-art'),
+        body: const {'description': 'abstract'},
       );
+
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        await speak(data['message']);
+        final decoded = _decodeJson(response.body);
+        await speak(decoded['message']?.toString() ?? 'AI art generated');
       } else {
         await speak('Failed to generate art. Please try again.');
       }
     } else if (command.contains('translate text')) {
       await speak('Translating text. Please specify the target language.');
-      // Example: Call backend for text translation
-      final response = await http.post(
-        Uri.parse('http://localhost:5001/api/translate-text'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'text': 'Hello', 'language': 'es'}),
+
+      final response = await _backend.postJson(
+        _baseUri.replace(path: '/api/translate-text'),
+        body: const {'text': 'Hello', 'language': 'es'},
       );
+
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        await speak(data['message']);
+        final decoded = _decodeJson(response.body);
+        await speak(decoded['message']?.toString() ?? 'Text translated');
       } else {
         await speak('Failed to translate text. Please try again.');
       }
     } else {
       await speak('Sorry, I did not understand the advanced command.');
     }
+  }
+
+  Map<String, dynamic> _decodeJson(String raw) {
+    final decoded = jsonDecode(raw);
+    if (decoded is Map<String, dynamic>) return decoded;
+    if (decoded is Map) return decoded.cast<String, dynamic>();
+    return <String, dynamic>{};
   }
 }
