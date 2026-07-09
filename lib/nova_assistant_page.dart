@@ -4,6 +4,8 @@ import 'package:flutter_tts/flutter_tts.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class NovaAssistantPage extends StatefulWidget {
+  const NovaAssistantPage({super.key});
+
   @override
   _NovaAssistantPageState createState() => _NovaAssistantPageState();
 }
@@ -14,9 +16,10 @@ class _NovaAssistantPageState extends State<NovaAssistantPage>
   late FlutterTts _flutterTts;
   bool _isListening = false;
   String _text = 'Press the button and start speaking';
-  String _response = 'Hello! I\'m Nova, your AI assistant. How can I help you today?';
+  String _response =
+      'Hello! I\'m Nova, your AI assistant. How can I help you today?';
   double _confidence = 1.0;
-  
+
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
 
@@ -27,7 +30,7 @@ class _NovaAssistantPageState extends State<NovaAssistantPage>
     _flutterTts = FlutterTts();
     _initializeTts();
     _requestPermissions();
-    
+
     _animationController = AnimationController(
       duration: Duration(milliseconds: 1000),
       vsync: this,
@@ -147,11 +150,11 @@ class _NovaAssistantPageState extends State<NovaAssistantPage>
                           width: 200,
                           height: 200,
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
+                            color: Colors.white.withValues(alpha: 0.2),
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.white.withOpacity(0.3),
+                                color: Colors.white.withValues(alpha: 0.3),
                                 blurRadius: 20,
                                 spreadRadius: _isListening ? 10 : 0,
                               ),
@@ -177,7 +180,7 @@ class _NovaAssistantPageState extends State<NovaAssistantPage>
                       Container(
                         padding: EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
+                          color: Colors.white.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Column(
@@ -219,7 +222,7 @@ class _NovaAssistantPageState extends State<NovaAssistantPage>
                       Container(
                         padding: EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
+                          color: Colors.white.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Column(
@@ -248,8 +251,10 @@ class _NovaAssistantPageState extends State<NovaAssistantPage>
                       Spacer(),
                       FloatingActionButton.extended(
                         onPressed: _listen,
-                        backgroundColor: _isListening ? Colors.red : Colors.white,
-                        foregroundColor: _isListening ? Colors.white : Colors.deepPurple,
+                        backgroundColor:
+                            _isListening ? Colors.red : Colors.white,
+                        foregroundColor:
+                            _isListening ? Colors.white : Colors.deepPurple,
                         icon: Icon(_isListening ? Icons.stop : Icons.mic),
                         label: Text(
                           _isListening ? 'Stop' : 'Talk to Nova',

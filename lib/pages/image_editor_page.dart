@@ -4,6 +4,8 @@ import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'dart:io';
 
 class ImageEditorPage extends StatefulWidget {
+  const ImageEditorPage({super.key});
+
   @override
   _ImageEditorPageState createState() => _ImageEditorPageState();
 }
@@ -92,11 +94,13 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
         actions: [
           IconButton(
             icon: Icon(Icons.save),
-            onPressed: _image != null ? () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Image saved successfully!')),
-              );
-            } : null,
+            onPressed: _image != null
+                ? () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Image saved successfully!')),
+                    );
+                  }
+                : null,
           ),
         ],
       ),
@@ -116,7 +120,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
                       borderRadius: BorderRadius.circular(12),
                       child: ColorFiltered(
                         colorFilter: ColorFilter.mode(
-                          _filterColor.withOpacity(0.3),
+                          _filterColor.withValues(alpha: 0.3),
                           BlendMode.overlay,
                         ),
                         child: Image.file(
@@ -197,7 +201,8 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
     );
   }
 
-  Widget _buildSlider(String label, double value, ValueChanged<double> onChanged) {
+  Widget _buildSlider(
+      String label, double value, ValueChanged<double> onChanged) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

@@ -4,6 +4,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class SettingsPage extends StatefulWidget {
+  const SettingsPage({super.key});
+
   @override
   _SettingsPageState createState() => _SettingsPageState();
 }
@@ -106,7 +108,7 @@ class _SettingsPageState extends State<SettingsPage> {
               Container(
                 padding: EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.amber.withOpacity(0.1),
+                  color: Colors.amber.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -477,18 +479,19 @@ class _SettingsPageState extends State<SettingsPage> {
         title: Text('Quality Mode'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
-          children: ['Low', 'Medium', 'High', 'Ultra'].map((quality) => 
-            RadioListTile<String>(
-              title: Text(quality),
-              value: quality,
-              groupValue: _qualityMode,
-              onChanged: (value) {
-                setState(() => _qualityMode = value!);
-                Navigator.pop(context);
-                _toggleFeature('quality_mode', value == 'High' || value == 'Ultra');
-              },
-            )
-          ).toList(),
+          children: ['Low', 'Medium', 'High', 'Ultra']
+              .map((quality) => RadioListTile<String>(
+                    title: Text(quality),
+                    value: quality,
+                    groupValue: _qualityMode,
+                    onChanged: (value) {
+                      setState(() => _qualityMode = value!);
+                      Navigator.pop(context);
+                      _toggleFeature(
+                          'quality_mode', value == 'High' || value == 'Ultra');
+                    },
+                  ))
+              .toList(),
         ),
       ),
     );
@@ -501,18 +504,18 @@ class _SettingsPageState extends State<SettingsPage> {
         title: Text('Select Language'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
-          children: ['English', 'Spanish', 'French', 'German', 'Italian'].map((lang) => 
-            RadioListTile<String>(
-              title: Text(lang),
-              value: lang,
-              groupValue: _language,
-              onChanged: (value) {
-                setState(() => _language = value!);
-                Navigator.pop(context);
-                _toggleFeature('language', value != 'English');
-              },
-            )
-          ).toList(),
+          children: ['English', 'Spanish', 'French', 'German', 'Italian']
+              .map((lang) => RadioListTile<String>(
+                    title: Text(lang),
+                    value: lang,
+                    groupValue: _language,
+                    onChanged: (value) {
+                      setState(() => _language = value!);
+                      Navigator.pop(context);
+                      _toggleFeature('language', value != 'English');
+                    },
+                  ))
+              .toList(),
         ),
       ),
     );
@@ -566,7 +569,8 @@ class _SettingsPageState extends State<SettingsPage> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Reset All Settings'),
-        content: Text('Are you sure you want to reset all settings to default? This action cannot be undone.'),
+        content: Text(
+            'Are you sure you want to reset all settings to default? This action cannot be undone.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),

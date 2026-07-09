@@ -15,6 +15,8 @@ void main() async {
 class EditNovaApp extends StatelessWidget {
   final NovaAssistant novaAssistant = NovaAssistant();
 
+  EditNovaApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(

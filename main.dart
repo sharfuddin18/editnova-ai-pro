@@ -8,6 +8,8 @@ void main() async {
 }
 
 class EditNovaApp extends StatelessWidget {
+  const EditNovaApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -19,6 +21,8 @@ class EditNovaApp extends StatelessWidget {
 }
 
 class HomePage extends StatefulWidget {
+  const HomePage({super.key});
+
   @override
   _HomePageState createState() => _HomePageState();
 }
@@ -57,7 +61,7 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(title: Text("EditNova")),
       body: Center(child: Text("Welcome to EditNova - AI Editing Suite")),
       bottomNavigationBar: _isAdLoaded
-          ? Container(
+          ? SizedBox(
               height: _bannerAd!.size.height.toDouble(),
               child: AdWidget(ad: _bannerAd!),
             )
