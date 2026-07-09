@@ -6,7 +6,6 @@ import '../pages/ai_art_generator_page.dart';
 import '../pages/poster_creator_page.dart';
 import '../pages/text_translator_page.dart';
 import '../pages/ocr_scanner_page.dart';
-import '../pages/batch_processor_page.dart';
 
 class ToolsPage extends StatefulWidget {
   const ToolsPage({super.key});
