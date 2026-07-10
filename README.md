@@ -1,58 +1,72 @@
-# EditNova - AI-Powered Mobile App
+EditNova AI Pro - AI-Powered All-in-One Editor
+EditNova AI Pro is an advanced, AI-driven editing suite designed for seamless media manipulation and content creation.
 
-## Environment Setup Issues
+🚀 Project Status
+Core Architecture: Flutter-based mobile frontend with Python/Flask backend.
 
-**Important Note:** This project is designed as a Flutter mobile application, but the current WebContainer environment has limitations:
+AI Integration: Voice-to-text, Text-to-speech, and generative AI features are implemented.
 
-### Current Environment Limitations:
-- Flutter SDK is not available in WebContainer
-- This is a browser-based Node.js runtime, not a full development environment
-- Mobile app development requires native SDKs and emulators
+UI/UX: Custom Montserrat typography system and animation assets integrated.
 
-### What's Working:
-✅ **Backend API Server** - Flask server with all endpoints
-✅ **Project Structure** - Complete Flutter project files
-✅ **Dependencies** - All required packages defined in pubspec.yaml
+Frontend Status: Currently stabilizing asset compilation and dependency management for cross-platform deployment.
 
-### To Run This Project Locally:
+🛠 Tech Stack
+Frontend: Flutter (Dart)
 
-1. **Install Flutter SDK:**
-   ```bash
-   # Download Flutter SDK from https://flutter.dev/docs/get-started/install
-   # Add Flutter to your PATH
-   flutter doctor
-   ```
+Backend: Python (Flask)
 
-2. **Install Dependencies:**
-   ```bash
-   flutter pub get
-   ```
+AI/ML: Integrated via API (Speech-to-Text, TTS, Lottie Animations)
 
-3. **Install Python Dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
+Build Tools: Flutter SDK, Pip
 
-4. **Run Backend Server:**
-   ```bash
-   python app.py
-   ```
+⚙️ Development Environment Setup
+Prerequisites
+Flutter SDK: Ensure Flutter 3.0.0+ is installed and configured in your PATH.
 
-5. **Run Flutter App:**
-   ```bash
-   flutter run
-   ```
+Python: Version 3.8+ required for backend services.
 
-### Current WebContainer Capabilities:
-- ✅ Backend API development and testing
-- ✅ Code review and structure analysis
-- ✅ Documentation and planning
-- ❌ Flutter mobile app compilation
-- ❌ Mobile device emulation
+OS: Development is currently optimized for local Windows environments.
 
-### API Endpoints Available:
-- `GET /api/usage` - Usage statistics
-- `POST /api/toggle-feature` - Feature toggles
-- `POST /api/login` - Authentication
+Installation Steps
+Clone the repository:
 
-The Flask backend server is now running and ready to serve the mobile app when run in a proper Flutter development environment.
+Bash
+git clone [your-repo-link]
+cd editnova-ai-pro
+Setup Frontend (Flutter):
+
+Bash
+# Install dependencies
+flutter pub get
+
+# Clean build cache (if encountering asset path errors)
+flutter clean
+Setup Backend (Python):
+
+Bash
+pip install -r requirements.txt
+python app.py
+📂 Asset Management
+The project utilizes a specific directory structure for branding:
+
+Fonts: Managed via pubspec.yaml using Montserrat-Regular and Montserrat-Bold.
+
+Assets: Located in /assets/images/ and /assets/animations/ (Lottie).
+
+Troubleshooting Assets: If you encounter Failed to load font errors, ensure your terminal is closed and perform a flutter clean to clear the cached asset bundle before re-running.
+
+📡 API Endpoints
+The backend provides the following interfaces:
+
+GET /api/usage: Retrieve current AI token usage.
+
+POST /api/toggle-feature: Toggle specific AI editing capabilities.
+
+POST /api/login: Secure user authentication.
+
+💡 Known Limitations
+OneDrive Syncing: Asset loading may be affected by background OneDrive sync processes. It is recommended to work in a locally excluded folder if build speeds are slow.
+
+Web Build: Currently optimized for mobile deployment (Android/iOS). Browser debugging via flutter run -d chrome may trigger platform-specific network exceptions if the backend is not actively reachable on the expected port.
+
+Developed by Sharfuddin Ahmed | Version 1.0.0+1
