@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart' as http_testing;
-// This import relies on 'name: editnova' defined in your pubspec.yaml
 import 'package:editnova/ai_assistant.dart';
+import 'package:editnova/models/ai_response.dart';
 
 void main() {
   group('AiAssistant Networking Tests', () {
@@ -17,13 +17,17 @@ void main() {
         baseUrl: 'https://example.com',
       );
 
-      final data = await assistant.getData();
-      expect(data['status'], equals('ok'));
+      // We now receive an AiResponse object
+      final AiResponse response = await assistant.getData();
+
+      // Access property directly using the dot operator
+      expect(response.status, equals('ok'));
     });
 
     test('Verify that mock client intercepts calls correctly', () async {
       final mockClient = http_testing.MockClient((request) async {
-        return http.Response(jsonEncode({'test': 'success'}), 200);
+        // Return a response that matches the AiResponse model
+        return http.Response(jsonEncode({'status': 'success'}), 200);
       });
 
       final assistant = AiAssistant(
@@ -31,8 +35,10 @@ void main() {
         baseUrl: 'https://example.com',
       );
 
-      final data = await assistant.getData();
-      expect(data['test'], equals('success'));
+      final AiResponse response = await assistant.getData();
+
+      // Access property directly using the dot operator
+      expect(response.status, equals('success'));
     });
   });
 }

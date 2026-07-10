@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart' as http_testing;
+import 'package:editnova/models/ai_response.dart';
 
 abstract class HttpClient {
   Future<Map<String, dynamic>> get(Uri url);
@@ -26,7 +27,6 @@ class RealHttpClientAdapter implements HttpClient {
 
 class MockHttpClientAdapter implements HttpClient {
   final http_testing.MockClient _mockClient;
-
   MockHttpClientAdapter(this._mockClient);
 
   @override
@@ -49,11 +49,13 @@ class AiAssistant {
 
   AiAssistant({required this.client, required this.baseUrl});
 
-  Future<Map<String, dynamic>> getData() async {
-    return await client.get(Uri.parse(baseUrl));
+  Future<AiResponse> getData() async {
+    final data = await client.get(Uri.parse(baseUrl));
+    return AiResponse.fromJson(data);
   }
 
-  Future<Map<String, dynamic>> postData(Map<String, dynamic> data) async {
-    return await client.post(Uri.parse(baseUrl), data);
+  Future<AiResponse> postData(Map<String, dynamic> data) async {
+    final response = await client.post(Uri.parse(baseUrl), data);
+    return AiResponse.fromJson(response);
   }
 }
