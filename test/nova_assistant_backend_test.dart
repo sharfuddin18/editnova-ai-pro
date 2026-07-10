@@ -1,26 +1,35 @@
+import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:editnova/network/mock_backend.dart';
-
-// We only test the MockHttpBackend contract; do not call NovaAssistant
-// (it instantiates FlutterTts which relies on platform channels).
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart' as http_testing;
+// Ensure this import matches your project's folder structure
+import 'package:editnova_ai/ai_assistant.dart';
 
 void main() {
-  test('MockHttpBackend returns configured JSON for create-poster', () async {
-    final backend = MockHttpBackend(routes: {
-      '/api/create-poster': {
-        'status': 'success',
-        'message': 'Poster created with theme: default',
-      },
+  test('Verify JSON parsing', () async {
+    final mockClient = http_testing.MockClient((request) async {
+      return http.Response(jsonEncode({'status': 'ok'}), 200);
     });
 
-    // Ensure the mocked endpoint returns the configured JSON.
-    final res = await backend.postJson(
-      Uri.parse('http://test.local/api/create-poster'),
-      body: const {'theme': 'default'},
-    );
+    final assistant = AiAssistant(
+        client: MockHttpClientAdapter(mockClient),
+        baseUrl: 'https://example.com');
 
-    expect(res.statusCode, 200);
-    expect(res.body, contains('Poster created with theme: default'));
+    final data = await assistant.getData();
+    expect(data['status'], equals('ok'));
+  });
+
+  test('Verify that mock client intercepts calls correctly', () async {
+    // This test ensures our mock logic is invoked
+    final mockClient = http_testing.MockClient((request) async {
+      return http.Response(jsonEncode({'test': 'success'}), 200);
+    });
+
+    final assistant = AiAssistant(
+        client: MockHttpClientAdapter(mockClient),
+        baseUrl: 'https://example.com');
+
+    final data = await assistant.getData();
+    expect(data['test'], equals('success'));
   });
 }

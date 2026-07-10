@@ -1,109 +1,59 @@
-import 'package:flutter_tts/flutter_tts.dart';
-import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart' as http_testing;
 
-import 'network/http_backend.dart';
+abstract class HttpClient {
+  Future<Map<String, dynamic>> get(Uri url);
+  Future<Map<String, dynamic>> post(Uri url, Map<String, dynamic> body);
+}
 
-class NovaAssistant {
-  final FlutterTts _flutterTts = FlutterTts();
-  final stt.SpeechToText _speechToText = stt.SpeechToText();
+class RealHttpClientAdapter implements HttpClient {
+  final _client = http.Client();
 
-  final HttpBackend _backend;
-  final Uri _baseUri;
-
-  NovaAssistant({
-    HttpBackend? backend,
-    Uri? baseUri,
-  })  : _backend = backend ?? HttpBackendImpl(),
-        _baseUri = baseUri ?? Uri.parse('http://localhost:5001');
-
-  Future<void> speak(String text) async {
-    await _flutterTts.speak(text);
+  @override
+  Future<Map<String, dynamic>> get(Uri url) async {
+    final response = await _client.get(url);
+    return jsonDecode(response.body);
   }
 
-  Future<String?> listen() async {
-    bool available = await _speechToText.initialize();
-    if (available) {
-      await _speechToText.listen();
-      return _speechToText.lastRecognizedWords;
-    } else {
-      return null;
-    }
+  @override
+  Future<Map<String, dynamic>> post(Uri url, Map<String, dynamic> body) async {
+    final response = await _client.post(url,
+        headers: {'Content-Type': 'application/json'}, body: jsonEncode(body));
+    return jsonDecode(response.body);
+  }
+}
+
+class MockHttpClientAdapter implements HttpClient {
+  final http_testing.MockClient _mockClient;
+
+  MockHttpClientAdapter(this._mockClient);
+
+  @override
+  Future<Map<String, dynamic>> get(Uri url) async {
+    final response = await _mockClient.get(url);
+    return jsonDecode(response.body);
   }
 
-  void stopListening() {
-    _speechToText.stop();
+  @override
+  Future<Map<String, dynamic>> post(Uri url, Map<String, dynamic> body) async {
+    final response = await _mockClient.post(url,
+        headers: {'Content-Type': 'application/json'}, body: jsonEncode(body));
+    return jsonDecode(response.body);
+  }
+}
+
+class AiAssistant {
+  final HttpClient client;
+  final String baseUrl;
+
+  AiAssistant({required this.client, required this.baseUrl});
+
+  Future<Map<String, dynamic>> getData() async {
+    return await client.get(Uri.parse(baseUrl));
   }
 
-  void dispose() {
-    _flutterTts.stop();
-    _speechToText.stop();
-  }
-
-  Future<void> handleCommand(String command) async {
-    if (command.contains('remove background')) {
-      await speak('Removing the background. Please wait.');
-      // Trigger background removal logic here
-    } else if (command.contains('make it brighter')) {
-      await speak('Enhancing brightness. Please wait.');
-      // Trigger brightness enhancement logic here
-    } else {
-      await speak('Sorry, I did not understand the command.');
-    }
-  }
-
-  Future<void> handleAdvancedCommand(String command) async {
-    if (command.contains('create poster')) {
-      await speak('Creating a poster. Please describe the theme.');
-
-      final response = await _backend.postJson(
-        _baseUri.replace(path: '/api/create-poster'),
-        body: const {'theme': 'default'},
-      );
-
-      if (response.statusCode == 200) {
-        final decoded = _decodeJson(response.body);
-        await speak(decoded['message']?.toString() ?? 'Poster created');
-      } else {
-        await speak('Failed to create poster. Please try again.');
-      }
-    } else if (command.contains('generate art')) {
-      await speak('Generating AI art. Please provide a description.');
-
-      final response = await _backend.postJson(
-        _baseUri.replace(path: '/api/generate-art'),
-        body: const {'description': 'abstract'},
-      );
-
-      if (response.statusCode == 200) {
-        final decoded = _decodeJson(response.body);
-        await speak(decoded['message']?.toString() ?? 'AI art generated');
-      } else {
-        await speak('Failed to generate art. Please try again.');
-      }
-    } else if (command.contains('translate text')) {
-      await speak('Translating text. Please specify the target language.');
-
-      final response = await _backend.postJson(
-        _baseUri.replace(path: '/api/translate-text'),
-        body: const {'text': 'Hello', 'language': 'es'},
-      );
-
-      if (response.statusCode == 200) {
-        final decoded = _decodeJson(response.body);
-        await speak(decoded['message']?.toString() ?? 'Text translated');
-      } else {
-        await speak('Failed to translate text. Please try again.');
-      }
-    } else {
-      await speak('Sorry, I did not understand the advanced command.');
-    }
-  }
-
-  Map<String, dynamic> _decodeJson(String raw) {
-    final decoded = jsonDecode(raw);
-    if (decoded is Map<String, dynamic>) return decoded;
-    if (decoded is Map) return decoded.cast<String, dynamic>();
-    return <String, dynamic>{};
+  Future<Map<String, dynamic>> postData(Map<String, dynamic> data) async {
+    return await client.post(Uri.parse(baseUrl), data);
   }
 }
