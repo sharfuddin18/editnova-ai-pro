@@ -1,12 +1,5 @@
-#!/usr/bin/env python3
-"""
-EditNova API Comprehensive Test Suite
-Tests all available API endpoints
-"""
-
 import requests
 import json
-import time
 
 API_BASE = 'http://localhost:5001'
 
