@@ -3,6 +3,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class StatsWidget extends StatefulWidget {
+  const StatsWidget({super.key});
+
   @override
   _StatsWidgetState createState() => _StatsWidgetState();
 }
@@ -24,7 +26,8 @@ class _StatsWidgetState extends State<StatsWidget> {
 
   Future<void> _loadStats() async {
     try {
-      final response = await http.get(Uri.parse('http://localhost:5001/api/usage'));
+      final response =
+          await http.get(Uri.parse('http://localhost:5001/api/usage'));
       if (response.statusCode == 200) {
         setState(() {
           stats = json.decode(response.body);
@@ -64,17 +67,22 @@ class _StatsWidgetState extends State<StatsWidget> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildStatItem('Active Users', stats['active_users'].toString(), Icons.people),
-                _buildStatItem('Premium', stats['premium_users'].toString(), Icons.star),
-                _buildStatItem('BG Removed', stats['background_removed'].toString(), Icons.layers_clear),
+                _buildStatItem('Active Users', stats['active_users'].toString(),
+                    Icons.people),
+                _buildStatItem(
+                    'Premium', stats['premium_users'].toString(), Icons.star),
+                _buildStatItem('BG Removed',
+                    stats['background_removed'].toString(), Icons.layers_clear),
               ],
             ),
             SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildStatItem('Files Scanned', stats['files_scanned'].toString(), Icons.scanner),
-                _buildStatItem('Threats Blocked', stats['threats_blocked'].toString(), Icons.security),
+                _buildStatItem('Files Scanned',
+                    stats['files_scanned'].toString(), Icons.scanner),
+                _buildStatItem('Threats Blocked',
+                    stats['threats_blocked'].toString(), Icons.security),
                 _buildStatItem('', '', Icons.trending_up),
               ],
             ),
@@ -86,7 +94,7 @@ class _StatsWidgetState extends State<StatsWidget> {
 
   Widget _buildStatItem(String label, String value, IconData icon) {
     if (label.isEmpty) return SizedBox(width: 80);
-    
+
     return Column(
       children: [
         Icon(icon, color: Theme.of(context).primaryColor, size: 24),

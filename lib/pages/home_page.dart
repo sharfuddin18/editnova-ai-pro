@@ -12,7 +12,7 @@ import '../ai_assistant.dart';
 class HomePage extends StatefulWidget {
   final NovaAssistant novaAssistant;
 
-  HomePage({required this.novaAssistant});
+  const HomePage({super.key, required this.novaAssistant});
 
   @override
   _HomePageState createState() => _HomePageState();
@@ -74,7 +74,7 @@ class _HomePageState extends State<HomePage> {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (_isAdLoaded)
-            Container(
+            SizedBox(
               height: _bannerAd!.size.height.toDouble(),
               child: AdWidget(ad: _bannerAd!),
             ),
@@ -137,6 +137,8 @@ class _HomePageState extends State<HomePage> {
 }
 
 class HomeContent extends StatelessWidget {
+  const HomeContent({super.key});
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(

@@ -1,29 +1,25 @@
 import 'package:flutter/material.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'pages/home_page.dart';
-import 'pages/splash_screen.dart';
-import 'utils/theme.dart';
-import 'ai_assistant.dart';
+import 'package:editnova/ai_assistant.dart';
+import 'package:editnova/screens/ai_screen.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await MobileAds.instance.initialize();
-  runApp(EditNovaApp());
+void main() {
+  runApp(const MyApp());
 }
 
-class EditNovaApp extends StatelessWidget {
-  final NovaAssistant novaAssistant = NovaAssistant();
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
+    // Note: Since you are using a real HTTP client,
+    // make sure you have internet access.
+    final assistant = AiAssistant(
+      client: RealHttpClientAdapter(),
+      baseUrl: 'https://api.example.com/status',
+    );
+
     return MaterialApp(
-      title: 'EditNova - AI Editor',
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system,
-      home: HomePage(novaAssistant: novaAssistant),
-      debugShowCheckedModeBanner: false,
+      home: AiScreen(assistant: assistant),
     );
   }
 }

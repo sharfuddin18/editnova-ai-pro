@@ -3,6 +3,8 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 
 class BackgroundRemoverPage extends StatefulWidget {
+  const BackgroundRemoverPage({super.key});
+
   @override
   _BackgroundRemoverPageState createState() => _BackgroundRemoverPageState();
 }
@@ -34,7 +36,8 @@ class _BackgroundRemoverPageState extends State<BackgroundRemoverPage> {
     await Future.delayed(Duration(seconds: 3));
 
     setState(() {
-      _processedImage = _originalImage; // In real app, this would be the processed image
+      _processedImage =
+          _originalImage; // In real app, this would be the processed image
       _isProcessing = false;
     });
 
@@ -51,11 +54,13 @@ class _BackgroundRemoverPageState extends State<BackgroundRemoverPage> {
         actions: [
           IconButton(
             icon: Icon(Icons.download),
-            onPressed: _processedImage != null ? () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Image downloaded!')),
-              );
-            } : null,
+            onPressed: _processedImage != null
+                ? () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Image downloaded!')),
+                    );
+                  }
+                : null,
           ),
         ],
       ),

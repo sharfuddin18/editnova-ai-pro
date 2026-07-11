@@ -7,12 +7,12 @@ class FeatureCard extends StatelessWidget {
   final VoidCallback onTap;
 
   const FeatureCard({
-    Key? key,
+    super.key,
     required this.title,
     required this.icon,
     required this.description,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +28,7 @@ class FeatureCard extends StatelessWidget {
               Container(
                 padding: EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).primaryColor.withOpacity(0.1),
+                  color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
