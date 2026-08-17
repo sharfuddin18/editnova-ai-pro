@@ -7,7 +7,7 @@ class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
 
   @override
-  _SettingsPageState createState() => _SettingsPageState();
+  State<SettingsPage> createState() => _SettingsPageState();
 }
 
 class _SettingsPageState extends State<SettingsPage> {
@@ -66,7 +66,7 @@ class _SettingsPageState extends State<SettingsPage> {
         body: jsonEncode({'feature': feature, 'enabled': enabled}),
       );
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Settings updated successfully'),
@@ -171,7 +171,7 @@ class _SettingsPageState extends State<SettingsPage> {
         body: jsonEncode({'plan': 'monthly'}),
       );
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Welcome to EditNova Premium! 🎉'),
@@ -181,6 +181,7 @@ class _SettingsPageState extends State<SettingsPage> {
         );
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Upgrade successful! Premium features unlocked.'),
@@ -477,21 +478,26 @@ class _SettingsPageState extends State<SettingsPage> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Quality Mode'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: ['Low', 'Medium', 'High', 'Ultra']
-              .map((quality) => RadioListTile<String>(
-                    title: Text(quality),
-                    value: quality,
-                    groupValue: _qualityMode,
-                    onChanged: (value) {
-                      setState(() => _qualityMode = value!);
-                      Navigator.pop(context);
-                      _toggleFeature(
-                          'quality_mode', value == 'High' || value == 'Ultra');
-                    },
-                  ))
-              .toList(),
+        content: RadioGroup<String>(
+          groupValue: _qualityMode,
+          onChanged: (value) {
+            if (value == null) return;
+            setState(() => _qualityMode = value);
+            Navigator.pop(context);
+            _toggleFeature(
+              'quality_mode',
+              value == 'High' || value == 'Ultra',
+            );
+          },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: ['Low', 'Medium', 'High', 'Ultra']
+                .map((quality) => RadioListTile<String>(
+                      title: Text(quality),
+                      value: quality,
+                    ))
+                .toList(),
+          ),
         ),
       ),
     );
@@ -502,20 +508,23 @@ class _SettingsPageState extends State<SettingsPage> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Select Language'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: ['English', 'Spanish', 'French', 'German', 'Italian']
-              .map((lang) => RadioListTile<String>(
-                    title: Text(lang),
-                    value: lang,
-                    groupValue: _language,
-                    onChanged: (value) {
-                      setState(() => _language = value!);
-                      Navigator.pop(context);
-                      _toggleFeature('language', value != 'English');
-                    },
-                  ))
-              .toList(),
+        content: RadioGroup<String>(
+          groupValue: _language,
+          onChanged: (value) {
+            if (value == null) return;
+            setState(() => _language = value);
+            Navigator.pop(context);
+            _toggleFeature('language', value != 'English');
+          },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: ['English', 'Spanish', 'French', 'German', 'Italian']
+                .map((lang) => RadioListTile<String>(
+                      title: Text(lang),
+                      value: lang,
+                    ))
+                .toList(),
+          ),
         ),
       ),
     );
@@ -581,6 +590,7 @@ class _SettingsPageState extends State<SettingsPage> {
               final prefs = await SharedPreferences.getInstance();
               await prefs.clear();
               await _loadSettings();
+              if (!context.mounted) return;
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('Settings reset to default')),

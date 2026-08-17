@@ -1,22 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:animated_text_kit/animated_text_kit.dart';
-import 'package:editnova/ai_assistant.dart';
 import 'home_page.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  _SplashScreenState createState() => _SplashScreenState();
+  State<SplashScreen> createState() => _SplashScreenState();
 }
 
 class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
-
-  // Use the imported NovaAssistant class instance
-  final NovaAssistant novaAssistantInstance = NovaAssistant();
 
   @override
   void initState() {
@@ -29,9 +25,10 @@ class _SplashScreenState extends State<SplashScreen>
     _controller.forward();
 
     Future.delayed(Duration(seconds: 3), () {
+      if (!mounted) return;
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (context) => HomePage(novaAssistant: novaAssistantInstance),
+          builder: (context) => const HomePage(),
         ),
       );
     });

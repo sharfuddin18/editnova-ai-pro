@@ -11,7 +11,7 @@ class ToolsPage extends StatefulWidget {
   const ToolsPage({super.key});
 
   @override
-  _ToolsPageState createState() => _ToolsPageState();
+  State<ToolsPage> createState() => _ToolsPageState();
 }
 
 class _ToolsPageState extends State<ToolsPage> with TickerProviderStateMixin {

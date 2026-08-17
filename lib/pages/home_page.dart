@@ -7,15 +7,12 @@ import 'image_editor_page.dart';
 import 'background_remover_page.dart';
 import 'file_scanner_page.dart';
 import '../nova_assistant_page.dart';
-import '../ai_assistant.dart';
 
 class HomePage extends StatefulWidget {
-  final NovaAssistant novaAssistant;
-
-  const HomePage({super.key, required this.novaAssistant});
+  const HomePage({super.key});
 
   @override
-  _HomePageState createState() => _HomePageState();
+  State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
@@ -42,7 +39,7 @@ class _HomePageState extends State<HomePage> {
       size: AdSize.banner,
       listener: BannerAdListener(
         onAdLoaded: (_) => setState(() => _isAdLoaded = true),
-        onAdFailedToLoad: (_, error) => print('Ad load failed: $error'),
+        onAdFailedToLoad: (_, error) {},
       ),
     )..load();
   }
@@ -106,10 +103,12 @@ class _HomePageState extends State<HomePage> {
             child: Icon(Icons.mic),
             label: 'Voice Assistant',
             onTap: () async {
-              String? command = await widget.novaAssistant.listen();
-              if (command != null) {
-                await widget.novaAssistant.handleCommand(command);
-              }
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const NovaAssistantPage(),
+                ),
+              );
             },
           ),
           SpeedDialChild(
@@ -124,10 +123,12 @@ class _HomePageState extends State<HomePage> {
             child: Icon(Icons.auto_awesome),
             label: 'Advanced Commands',
             onTap: () async {
-              String? command = await widget.novaAssistant.listen();
-              if (command != null) {
-                await widget.novaAssistant.handleAdvancedCommand(command);
-              }
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const NovaAssistantPage(),
+                ),
+              );
             },
           ),
         ],

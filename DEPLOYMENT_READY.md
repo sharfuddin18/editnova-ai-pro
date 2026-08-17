@@ -115,7 +115,6 @@ While the web demo is fully functional, the original EditNova is designed as a *
 │   └── ... (12+ feature pages)
 ├── widgets/                     # Reusable components
 ├── utils/                       # Utilities and themes
-└── ai_assistant.dart           # Nova voice assistant
 ```
 
 ---

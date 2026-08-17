@@ -7,7 +7,7 @@ class FileScannerPage extends StatefulWidget {
   const FileScannerPage({super.key});
 
   @override
-  _FileScannerPageState createState() => _FileScannerPageState();
+  State<FileScannerPage> createState() => _FileScannerPageState();
 }
 
 class _FileScannerPageState extends State<FileScannerPage>

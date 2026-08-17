@@ -6,7 +6,7 @@ class AIArtGeneratorPage extends StatefulWidget {
   const AIArtGeneratorPage({super.key});
 
   @override
-  _AIArtGeneratorPageState createState() => _AIArtGeneratorPageState();
+  State<AIArtGeneratorPage> createState() => _AIArtGeneratorPageState();
 }
 
 class _AIArtGeneratorPageState extends State<AIArtGeneratorPage>
@@ -48,19 +48,11 @@ class _AIArtGeneratorPageState extends State<AIArtGeneratorPage>
   }
 
   Future<void> _generateArt() async {
-    if (_promptController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please enter a description')),
-      );
-      return;
-    }
+    if (_promptController.text.trim().isEmpty) return;
 
     setState(() {
       _isGenerating = true;
     });
-
-    _generateController.repeat();
-    _pulseController.repeat(reverse: true);
 
     try {
       final response = await http.post(
@@ -74,29 +66,41 @@ class _AIArtGeneratorPageState extends State<AIArtGeneratorPage>
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        await Future.delayed(Duration(seconds: 3)); // Simulate generation time
+
+        await Future.delayed(const Duration(seconds: 3));
+
+        if (!mounted) return;
 
         setState(() {
           _generatedArtId = data['artId'];
         });
 
+        if (!mounted) return;
+
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('AI artwork generated successfully! 🎨'),
             backgroundColor: Colors.green,
           ),
         );
       }
     } catch (e) {
+      if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to generate artwork')),
+        const SnackBar(
+          content: Text('Failed to generate artwork'),
+        ),
       );
     } finally {
-      setState(() {
-        _isGenerating = false;
-      });
-      _generateController.stop();
-      _pulseController.stop();
+      if (mounted) {
+        setState(() {
+          _isGenerating = false;
+        });
+
+        _generateController.stop();
+        _pulseController.stop();
+      }
     }
   }
 

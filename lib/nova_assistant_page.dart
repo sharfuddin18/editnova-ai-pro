@@ -7,7 +7,7 @@ class NovaAssistantPage extends StatefulWidget {
   const NovaAssistantPage({super.key});
 
   @override
-  _NovaAssistantPageState createState() => _NovaAssistantPageState();
+  State<NovaAssistantPage> createState() => _NovaAssistantPageState();
 }
 
 class _NovaAssistantPageState extends State<NovaAssistantPage>
@@ -53,10 +53,7 @@ class _NovaAssistantPageState extends State<NovaAssistantPage>
 
   void _listen() async {
     if (!_isListening) {
-      bool available = await _speech.initialize(
-        onStatus: (val) => print('onStatus: $val'),
-        onError: (val) => print('onError: $val'),
-      );
+      bool available = await _speech.initialize();
       if (available) {
         setState(() => _isListening = true);
         _animationController.repeat(reverse: true);

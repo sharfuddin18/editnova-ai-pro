@@ -7,7 +7,7 @@ class ImageEditorPage extends StatefulWidget {
   const ImageEditorPage({super.key});
 
   @override
-  _ImageEditorPageState createState() => _ImageEditorPageState();
+  State<ImageEditorPage> createState() => _ImageEditorPageState();
 }
 
 class _ImageEditorPageState extends State<ImageEditorPage> {
