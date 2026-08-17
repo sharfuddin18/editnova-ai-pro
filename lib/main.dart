@@ -1,25 +1,23 @@
 import 'package:flutter/material.dart';
-import 'package:editnova/ai_assistant.dart';
-import 'package:editnova/screens/ai_screen.dart';
+import 'package:editnova/pages/home_page.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const EditNovaApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class EditNovaApp extends StatelessWidget {
+  const EditNovaApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Note: Since you are using a real HTTP client,
-    // make sure you have internet access.
-    final assistant = AiAssistant(
-      client: RealHttpClientAdapter(),
-      baseUrl: 'https://api.example.com/status',
-    );
-
     return MaterialApp(
-      home: AiScreen(assistant: assistant),
+      title: 'EditNova',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        scaffoldBackgroundColor: Colors.white,
+      ),
+      home: const HomePage(),
     );
   }
 }

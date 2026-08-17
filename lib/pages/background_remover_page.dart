@@ -6,7 +6,7 @@ class BackgroundRemoverPage extends StatefulWidget {
   const BackgroundRemoverPage({super.key});
 
   @override
-  _BackgroundRemoverPageState createState() => _BackgroundRemoverPageState();
+  State<BackgroundRemoverPage> createState() => _BackgroundRemoverPageState();
 }
 
 class _BackgroundRemoverPageState extends State<BackgroundRemoverPage> {
@@ -32,8 +32,9 @@ class _BackgroundRemoverPageState extends State<BackgroundRemoverPage> {
       _isProcessing = true;
     });
 
-    // Simulate background removal process
-    await Future.delayed(Duration(seconds: 3));
+    await Future.delayed(const Duration(seconds: 3));
+
+    if (!mounted) return;
 
     setState(() {
       _processedImage =
@@ -41,8 +42,12 @@ class _BackgroundRemoverPageState extends State<BackgroundRemoverPage> {
       _isProcessing = false;
     });
 
+    if (!mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Background removed successfully!')),
+      const SnackBar(
+        content: Text('Background removed successfully!'),
+      ),
     );
   }
 

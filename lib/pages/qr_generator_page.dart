@@ -6,7 +6,7 @@ class QRGeneratorPage extends StatefulWidget {
   const QRGeneratorPage({super.key});
 
   @override
-  _QRGeneratorPageState createState() => _QRGeneratorPageState();
+  State<QRGeneratorPage> createState() => _QRGeneratorPageState();
 }
 
 class _QRGeneratorPageState extends State<QRGeneratorPage> {
@@ -48,6 +48,7 @@ class _QRGeneratorPageState extends State<QRGeneratorPage> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        if (!mounted) return;
         setState(() {
           _generatedQRId = data['qrId'];
         });
@@ -59,13 +60,16 @@ class _QRGeneratorPageState extends State<QRGeneratorPage> {
         );
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to generate QR code')),
       );
     } finally {
-      setState(() {
-        _isGenerating = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isGenerating = false;
+        });
+      }
     }
   }
 

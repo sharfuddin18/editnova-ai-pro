@@ -6,7 +6,7 @@ class StatsWidget extends StatefulWidget {
   const StatsWidget({super.key});
 
   @override
-  _StatsWidgetState createState() => _StatsWidgetState();
+  State<StatsWidget> createState() => _StatsWidgetState();
 }
 
 class _StatsWidgetState extends State<StatsWidget> {
