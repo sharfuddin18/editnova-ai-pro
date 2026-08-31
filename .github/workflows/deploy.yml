@@ -5,6 +5,10 @@ on:
     branches:
       - main
 
+# Explicitly grant write access to push to the gh-pages branch
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -22,7 +26,6 @@ jobs:
         run: flutter pub get
 
       - name: Build Web
-        # Replace 'editnova-ai-pro' with your actual repository name
         run: flutter build web --release --base-href /editnova-ai-pro/
 
       - name: Deploy to GitHub Pages
