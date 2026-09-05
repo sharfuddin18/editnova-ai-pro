@@ -9,6 +9,7 @@ import urllib.error
 import urllib.request
 import mimetypes
 import base64
+from io import BytesIO
 import shutil
 import subprocess
 import hmac
@@ -70,6 +71,10 @@ def _init_database():
             CREATE TABLE IF NOT EXISTS subscriptions (
                 id TEXT PRIMARY KEY, user_id TEXT NOT NULL, plan TEXT NOT NULL,
                 status TEXT NOT NULL, valid_until TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS feature_flags (
+                user_id TEXT NOT NULL, feature TEXT NOT NULL, enabled INTEGER NOT NULL,
+                updated_at TEXT NOT NULL, PRIMARY KEY (user_id, feature)
             );
         ''')
 
@@ -138,6 +143,12 @@ def _record_event(event, user_id=None):
 def _request_user_id():
     identity = _token_identity()
     return identity[0] if identity else None
+
+def _file_owned_by_request(connection, file_id):
+    return connection.execute(
+        'SELECT id, stored_name, original_name, owner_id FROM files WHERE id = ? AND owner_id = ?',
+        (file_id, _request_user_id()),
+    ).fetchone()
 
 
 def _provider_request(url, payload, headers=None, timeout=30):
@@ -225,12 +236,22 @@ def health():
     return jsonify({"status": "ok", "service": "editnova-api", "version": "1.0.0"})
 
 @app.route('/api/toggle-feature', methods=['POST'])
+@_auth_required
 def toggle_feature():
     data = _payload()
     missing = _required(data, "feature")
     if missing:
         return jsonify({"status": "error", "message": "feature is required"}), 400
-    return jsonify({"status": "success", "message": f"{data.get('feature', 'unknown')} set to {data.get('enabled', False)}"})
+    if not isinstance(data.get('enabled'), bool):
+        return jsonify({"status": "error", "message": "enabled must be a boolean"}), 400
+    feature = str(data['feature']).strip()
+    with _database() as connection:
+        connection.execute(
+            'INSERT INTO feature_flags (user_id, feature, enabled, updated_at) VALUES (?, ?, ?, ?) '
+            'ON CONFLICT(user_id, feature) DO UPDATE SET enabled = excluded.enabled, updated_at = excluded.updated_at',
+            (_request_user_id(), feature, int(data['enabled']), datetime.now(timezone.utc).isoformat()),
+        )
+    return jsonify({"status": "success", "feature": feature, "enabled": data['enabled']})
 
 @app.route('/api/login', methods=['POST'])
 def login():
@@ -325,27 +346,77 @@ def generate_art():
     if not api_key:
         return jsonify({"status": "error", "message": "AI art provider is not configured"}), 503
     try:
+        style = str(data.get('style', 'digital')).strip()
         provider = _provider_request(
             os.getenv('OPENAI_BASE_URL', 'https://api.openai.com/v1') + '/images/generations',
-            {'prompt': data['description'].strip(), 'size': data.get('size', '1024x1024'), 'n': 1},
+            {'prompt': f'{style} style: {data["description"].strip()}', 'size': data.get('size', '1024x1024'), 'n': 1},
             {'Authorization': f'Bearer {api_key}'},
         )
-        image_url = provider.get('data', [{}])[0].get('url')
-        if not image_url:
+        generated = provider.get('data')
+        if not isinstance(generated, list) or not generated or not isinstance(generated[0], dict):
+            raise RuntimeError('provider returned malformed image data')
+        image_url = generated[0].get('url')
+        if not isinstance(image_url, str) or not image_url:
             raise RuntimeError('provider returned no image')
         _record_event('art_generated')
-        return jsonify({"status": "success", "artId": str(uuid.uuid4()), "imageUrl": image_url})
+        return jsonify({"status": "success", "artId": str(uuid.uuid4()), "style": style, "imageUrl": image_url})
     except RuntimeError:
         return jsonify({"status": "error", "message": "AI art provider failed"}), 502
 
 @app.route('/api/create-poster', methods=['POST'])
 def create_poster():
     data = _payload()
-    poster_id = str(uuid.uuid4())
+    if _required(data, 'text'):
+        return jsonify({'status': 'error', 'message': 'text is required'}), 400
+    theme = str(data.get('theme', 'modern')).strip().lower()
+    palettes = {
+        'modern': ((18, 24, 38), (62, 184, 156)),
+        'minimal': ((245, 247, 250), (30, 41, 59)),
+        'neon': ((12, 10, 32), (236, 72, 153)),
+        'elegant': ((35, 25, 20), (212, 175, 55)),
+    }
+    if theme not in palettes:
+        return jsonify({'status': 'error', 'message': 'unsupported poster theme'}), 400
+    text = str(data['text']).strip()
+    if len(text) > 500:
+        return jsonify({'status': 'error', 'message': 'text must be 500 characters or fewer'}), 400
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+
+        background, accent = palettes[theme]
+        image = Image.new('RGB', (1200, 1500), background)
+        draw = ImageDraw.Draw(image)
+        draw.rectangle((80, 80, 1120, 1420), outline=accent, width=8)
+        draw.ellipse((820, 140, 1050, 370), fill=accent)
+        font = ImageFont.load_default(size=64)
+        lines = []
+        current = ''
+        for word in text.split():
+            candidate = f'{current} {word}'.strip()
+            if draw.textbbox((0, 0), candidate, font=font)[2] <= 900:
+                current = candidate
+            else:
+                if current:
+                    lines.append(current)
+                current = word
+        if current:
+            lines.append(current)
+        draw.multiline_text((150, 650), '\n'.join(lines), fill=accent, font=font, spacing=18)
+        output = BytesIO()
+        image.save(output, format='PNG')
+        poster_id = str(uuid.uuid4())
+        _record_event('poster_created')
+    except (OSError, ValueError):
+        return jsonify({'status': 'error', 'message': 'poster rendering failed'}), 500
     return jsonify({
         "status": "success",
         "posterId": poster_id,
-        "message": f"Poster created with {data.get('theme', 'modern')} theme"
+        "theme": theme,
+        "message": f"Poster created with {theme} theme",
+        "mimeType": "image/png",
+        "width": image.width,
+        "height": image.height,
+        "imageData": base64.b64encode(output.getvalue()).decode('ascii'),
     })
 
 @app.route('/api/translate-text', methods=['POST'])
@@ -415,7 +486,7 @@ def upload_image():
 def download_file(file_id):
     from flask import send_from_directory
     with _database() as connection:
-        stored = connection.execute('SELECT stored_name, original_name FROM files WHERE id = ? AND (owner_id = ? OR owner_id IS NULL)', (file_id, _request_user_id())).fetchone()
+        stored = _file_owned_by_request(connection, file_id)
     if not stored:
         return jsonify({"status": "error", "message": "file not found"}), 404
     if not (STORAGE_PATH / stored['stored_name']).is_file():
@@ -445,7 +516,7 @@ def process_image():
             output_name = f'{output_id}.jpg'
             image.save(STORAGE_PATH / output_name, quality=92)
             with _database() as connection:
-                connection.execute('INSERT INTO files (id, owner_id, original_name, stored_name, content_type, size, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)', (output_id, None, f'{operation}.jpg', output_name, 'image/jpeg', (STORAGE_PATH / output_name).stat().st_size, datetime.now(timezone.utc).isoformat()))
+                    connection.execute('INSERT INTO files (id, owner_id, original_name, stored_name, content_type, size, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)', (output_id, _request_user_id(), f'{operation}.jpg', output_name, 'image/jpeg', (STORAGE_PATH / output_name).stat().st_size, datetime.now(timezone.utc).isoformat()))
             _record_event('image_processed')
             return jsonify({"status": "success", "fileId": output_id, "operation": operation, "downloadUrl": f'/api/files/{output_id}'})
         except (OSError, ValueError):
@@ -475,7 +546,7 @@ def remove_background():
             output_name = f'{output_id}.png'
             image.save(STORAGE_PATH / output_name, format='PNG')
             with _database() as connection:
-                connection.execute('INSERT INTO files (id, owner_id, original_name, stored_name, content_type, size, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)', (output_id, None, 'background-removed.png', output_name, 'image/png', (STORAGE_PATH / output_name).stat().st_size, datetime.now(timezone.utc).isoformat()))
+                    connection.execute('INSERT INTO files (id, owner_id, original_name, stored_name, content_type, size, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)', (output_id, _request_user_id(), 'background-removed.png', output_name, 'image/png', (STORAGE_PATH / output_name).stat().st_size, datetime.now(timezone.utc).isoformat()))
             _record_event('background_removed')
             return jsonify({"status": "success", "fileId": output_id, "downloadUrl": f'/api/files/{output_id}'})
         except (OSError, ValueError):
@@ -492,7 +563,7 @@ def scan_file():
             return error
         scanner = shutil.which('clamscan')
         if not scanner:
-            return jsonify({"status": "success", "fileId": stored['id'], "safe": None, "scanStatus": "not_scanned", "threats": [], "message": "No malware scanner is installed on the server"})
+            return jsonify({"status": "error", "message": "No malware scanner is installed on the server"}), 503
         result = subprocess.run([scanner, '--no-summary', str(stored['path'])], capture_output=True, text=True, timeout=30)
         infected = result.returncode == 1
         _record_event('file_scanned')
@@ -500,8 +571,7 @@ def scan_file():
     data = _payload()
     if _required(data, "filename"):
         return jsonify({"status": "error", "message": "filename is required"}), 400
-    digest = hashlib.sha256(data['filename'].encode()).hexdigest()
-    return jsonify({"status": "success", "filename": data['filename'], "safe": None, "scanStatus": "not_scanned", "scanId": digest[:16], "threats": [], "message": "Upload the file bytes to run a malware scan"})
+    return jsonify({"status": "error", "message": "file bytes are required for malware scanning"}), 400
 
 
 @app.route('/api/generate-qr', methods=['POST'])
@@ -513,13 +583,14 @@ def generate_qr():
 
 
 @app.route('/api/batch-process', methods=['POST'])
+@_auth_required
 def batch_process():
     data = _payload()
     file_ids = data.get('fileIds')
     if not isinstance(file_ids, list) or not file_ids or _required(data, "operation"):
         return jsonify({"status": "error", "message": "fileIds and operation are required"}), 400
     operation = str(data['operation']).strip().lower()
-    if operation not in {'enhance', 'resize', 'grayscale', 'convert'}:
+    if operation not in {'enhance', 'resize', 'grayscale'}:
         return jsonify({"status": "error", "message": "unsupported batch operation"}), 400
     job_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
@@ -533,9 +604,7 @@ def batch_process():
     try:
         from PIL import Image, ImageEnhance
         with _database() as connection:
-            files = [connection.execute(
-                'SELECT id, stored_name FROM files WHERE id = ?', (file_id,)
-            ).fetchone() for file_id in file_ids]
+            files = [_file_owned_by_request(connection, file_id) for file_id in file_ids]
         if any(stored is None for stored in files):
             raise FileNotFoundError('one or more files were not found')
         for stored in files:
@@ -574,7 +643,7 @@ def batch_process():
         )
     _record_event('batch_completed' if state == 'completed' else 'batch_failed')
     return jsonify({
-        "status": "success",
+        "status": "success" if state == "completed" else "error",
         "jobId": job_id,
         "total": len(file_ids),
         "operation": operation,
@@ -582,7 +651,7 @@ def batch_process():
         "state": state,
         "outputs": results,
         "error": failure,
-    })
+    }), 200 if state == "completed" else 422
 
 
 @app.route('/api/jobs/<job_id>', methods=['GET'])
@@ -601,7 +670,7 @@ def social_share():
     data = _payload()
     if _required(data, "platform", "imageId"):
         return jsonify({"status": "error", "message": "platform and imageId are required"}), 400
-    return jsonify({"status": "success", "platform": data['platform'], "shareId": str(uuid.uuid4()), "shared": True})
+    return jsonify({"status": "error", "message": "social sharing provider is not configured"}), 503
 
 @app.route('/api/upgrade-premium', methods=['POST'])
 def upgrade_premium():

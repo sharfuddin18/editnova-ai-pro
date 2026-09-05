@@ -43,14 +43,8 @@ class _ToolsPageState extends State<ToolsPage> with TickerProviderStateMixin {
         });
       }
     } catch (e) {
-      // Use default stats if API fails
       setState(() {
-        _toolStats = {
-          "ai_art_generated": 156,
-          "texts_translated": 234,
-          "qr_codes_generated": 67,
-          "images_edited": 892
-        };
+        _toolStats = {};
       });
     }
   }
@@ -530,9 +524,7 @@ class _ToolsPageState extends State<ToolsPage> with TickerProviderStateMixin {
           spacing: 8,
           runSpacing: 8,
           children: [
-            _buildQuickActionChip('Hash Generator', Icons.fingerprint),
             _buildQuickActionChip('Lorem Ipsum', Icons.text_snippet),
-            _buildQuickActionChip('URL Shortener', Icons.link),
             _buildQuickActionChip('Base64 Encode', Icons.code),
             _buildQuickActionChip('Regex Tester', Icons.search),
             _buildQuickActionChip('JSON Formatter', Icons.data_object),
@@ -558,9 +550,13 @@ class _ToolsPageState extends State<ToolsPage> with TickerProviderStateMixin {
         title: Text(label),
         content: TextField(
           controller: controller,
-          maxLines: label == 'JSON Formatter' ? 8 : 4,
+            maxLines: label == 'JSON Formatter' || label == 'Regex Tester' ? 8 : 4,
           decoration: InputDecoration(
-            hintText: label == 'JSON Formatter' ? '{"name":"EditNova"}' : 'Enter text to test',
+              hintText: label == 'JSON Formatter'
+                  ? '{"name":"Editnova"}'
+                  : label == 'Regex Tester'
+                      ? 'pattern\ntext to test'
+                      : 'Enter text to test',
             border: const OutlineInputBorder(),
           ),
         ),
@@ -582,10 +578,25 @@ class _ToolsPageState extends State<ToolsPage> with TickerProviderStateMixin {
                 } catch (_) {
                   result = 'Invalid JSON';
                 }
+              } else if (label == 'Base64 Encode') {
+                result = base64Encode(utf8.encode(input));
+              } else if (label == 'Lorem Ipsum') {
+                result = List.filled(20, 'EditNova helps turn ideas into polished creative work.')
+                    .join(' ');
               } else if (label == 'Regex Tester') {
-                result = 'Text received. Add a pattern in the next field to test matches.';
+                final lines = input.split('\n');
+                if (lines.length < 2 || lines.first.trim().isEmpty) {
+                  result = 'Enter a regular expression on the first line and text on the second.';
+                } else {
+                  try {
+                    final matches = RegExp(lines.first).allMatches(lines.sublist(1).join('\n')).length;
+                    result = '$matches match${matches == 1 ? '' : 'es'} found.';
+                  } on FormatException {
+                    result = 'Invalid regular expression';
+                  }
+                }
               } else {
-                result = 'Processed ${input.length} characters.';
+                result = 'This tool is unavailable.';
               }
               Navigator.pop(context);
               showDialog<void>(

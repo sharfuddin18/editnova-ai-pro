@@ -4,6 +4,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:convert';
 import 'dart:io';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../network/api_config.dart';
 
 class QRGeneratorPage extends StatefulWidget {
@@ -18,6 +19,26 @@ class _QRGeneratorPageState extends State<QRGeneratorPage> {
   String _selectedType = 'URL';
   String? _generatedQRId;
   bool _isGenerating = false;
+  List<String> _history = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadHistory();
+  }
+
+  Future<void> _loadHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    setState(() => _history = prefs.getStringList('qrHistory') ?? []);
+  }
+
+  Future<void> _saveHistory(String value) async {
+    final updated = [value, ..._history.where((item) => item != value)].take(20).toList();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('qrHistory', updated);
+    if (mounted) setState(() => _history = updated);
+  }
 
   final List<QRType> _qrTypes = [
     QRType('URL', Icons.link, 'Website or link'),
@@ -62,6 +83,8 @@ class _QRGeneratorPageState extends State<QRGeneratorPage> {
         setState(() {
           _generatedQRId = data['qrId'];
         });
+        await _saveHistory(_textController.text.trim());
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('QR code generated successfully!'),
@@ -404,33 +427,23 @@ class _QRGeneratorPageState extends State<QRGeneratorPage> {
               ),
             ),
             SizedBox(height: 16),
-            ListTile(
-              leading: Icon(Icons.link, color: Colors.blue),
-              title: Text('https://flutter.dev'),
-              subtitle: Text('URL • Created today'),
-              trailing: IconButton(
-                icon: Icon(Icons.more_vert),
-                onPressed: () => _showHistoryActions('https://flutter.dev'),
+            if (_history.isEmpty)
+              const Padding(
+                padding: EdgeInsets.all(24),
+                child: Text('No QR codes generated yet.'),
+              )
+            else
+              ..._history.map(
+                (value) => ListTile(
+                  leading: const Icon(Icons.qr_code, color: Colors.indigo),
+                  title: Text(value),
+                  subtitle: const Text('Saved on this device'),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.more_vert),
+                    onPressed: () => _showHistoryActions(value),
+                  ),
+                ),
               ),
-            ),
-            ListTile(
-              leading: Icon(Icons.text_fields, color: Colors.green),
-              title: Text('Welcome to EditNova!'),
-              subtitle: Text('Text • Created yesterday'),
-              trailing: IconButton(
-                icon: Icon(Icons.more_vert),
-                onPressed: () => _showHistoryActions('Welcome to EditNova!'),
-              ),
-            ),
-            ListTile(
-              leading: Icon(Icons.email, color: Colors.orange),
-              title: Text('support@editnova.com'),
-              subtitle: Text('Email • Created 3 days ago'),
-              trailing: IconButton(
-                icon: Icon(Icons.more_vert),
-                onPressed: () => _showHistoryActions('support@editnova.com'),
-              ),
-            ),
           ],
         ),
       ),
@@ -459,14 +472,23 @@ class _QRGeneratorPageState extends State<QRGeneratorPage> {
               title: Text('Remove from history'),
               onTap: () {
                 Navigator.pop(context);
-                ScaffoldMessenger.of(this.context).showSnackBar(
-                  SnackBar(content: Text('Removed from history')),
-                );
+                _removeFromHistory(value);
               },
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Future<void> _removeFromHistory(String value) async {
+    final updated = _history.where((item) => item != value).toList();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('qrHistory', updated);
+    if (!mounted) return;
+    setState(() => _history = updated);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Removed from history')),
     );
   }
 }

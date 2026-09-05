@@ -57,9 +57,18 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
   }
 
   void _resetAdjustments() {
-    _setAdjustment(0, 0.0);
-    _setAdjustment(1, 0.0);
-    _setAdjustment(2, 0.0);
+    const reset = [0.0, 0.0, 0.0];
+    if (_historyIndex == 0 && _currentAdjustment.every((value) => value == 0.0)) {
+      return;
+    }
+    setState(() {
+      if (_historyIndex < _history.length - 1) {
+        _history.removeRange(_historyIndex + 1, _history.length);
+      }
+      _history.add(reset);
+      _historyIndex++;
+      _applyAdjustment(reset);
+    });
   }
 
   void _applyAdjustment(List<double> adjustment) {
@@ -90,6 +99,12 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
     if (image != null) {
       setState(() {
         _image = File(image.path);
+        _history
+          ..clear()
+          ..add(const [0.0, 0.0, 0.0]);
+        _historyIndex = 0;
+        _applyAdjustment(_history.first);
+        _filterColor = Colors.transparent;
       });
     }
   }

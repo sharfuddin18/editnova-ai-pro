@@ -30,6 +30,13 @@ class AuthSession {
     };
   }
 
+  static Future<Map<String, String>> authorizationHeaders() async {
+    final value = await token();
+    return value == null || value.isEmpty
+        ? {}
+        : {'Authorization': 'Bearer $value'};
+  }
+
   static Future<void> clear() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_tokenKey);

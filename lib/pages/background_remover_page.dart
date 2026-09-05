@@ -94,11 +94,14 @@ class _BackgroundRemoverPageState extends State<BackgroundRemoverPage> {
             icon: Icon(Icons.download),
             onPressed: _processedImage != null
                 ? () async {
+                    final processedImage = _processedImage;
+                    if (processedImage == null) return;
                     final directory = await getApplicationDocumentsDirectory();
                     final path = '${directory.path}/editnova_no_background_${DateTime.now().millisecondsSinceEpoch}.png';
-                    await File(path).writeAsBytes(await _processedImage!.readAsBytes());
+                    await File(path).writeAsBytes(await processedImage.readAsBytes());
                     if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    final messenger = ScaffoldMessenger.of(this.context);
+                    messenger.showSnackBar(
                       SnackBar(content: Text('Image saved to $path')),
                     );
                   }

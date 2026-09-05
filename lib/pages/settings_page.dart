@@ -65,7 +65,7 @@ class _SettingsPageState extends State<SettingsPage> {
     try {
       final response = await http.post(
         ApiConfig.endpoint('/api/toggle-feature'),
-        headers: {'Content-Type': 'application/json'},
+        headers: await AuthSession.headers(),
         body: jsonEncode({'feature': feature, 'enabled': enabled}),
       );
 
@@ -76,9 +76,17 @@ class _SettingsPageState extends State<SettingsPage> {
             backgroundColor: Colors.green,
           ),
         );
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Settings could not be synchronized.')),
+        );
       }
     } catch (e) {
-      // Continue with local storage even if API fails
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Settings could not be synchronized.')),
+        );
+      }
     }
     await _saveSettings();
   }
@@ -190,6 +198,10 @@ class _SettingsPageState extends State<SettingsPage> {
             backgroundColor: Colors.green,
             duration: Duration(seconds: 3),
           ),
+        );
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Upgrade failed. Please try again.')),
         );
       }
     } catch (e) {

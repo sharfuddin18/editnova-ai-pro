@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import '../network/api_config.dart';
+import '../network/auth_session.dart';
 
 class BatchProcessorPage extends StatefulWidget {
   const BatchProcessorPage({super.key});
@@ -26,11 +27,17 @@ class _BatchProcessorPageState extends State<BatchProcessorPage> {
 
   Future<void> _process() async {
     if (_files.isEmpty) { _notify('Choose at least one file first.'); return; }
+    final authHeaders = await AuthSession.authorizationHeaders();
+    if (!authHeaders.containsKey('Authorization')) {
+      _notify('Sign in before starting a batch job.');
+      return;
+    }
     setState(() => _loading = true);
     try {
       final fileIds = <String>[];
       for (final file in _files) {
         final upload = http.MultipartRequest('POST', ApiConfig.endpoint('/api/upload-image'));
+        upload.headers.addAll(authHeaders);
         if (file.path != null) {
           upload.files.add(await http.MultipartFile.fromPath('file', file.path!));
         } else if (file.bytes != null) {
@@ -42,7 +49,7 @@ class _BatchProcessorPageState extends State<BatchProcessorPage> {
         if (uploadResponse.statusCode != 200) throw Exception('Upload failed');
         fileIds.add((jsonDecode(uploadResponse.body) as Map<String, dynamic>)['imageId'].toString());
       }
-      final response = await http.post(ApiConfig.endpoint('/api/batch-process'), headers: {'Content-Type': 'application/json'}, body: jsonEncode({'fileIds': fileIds, 'operation': _operation}));
+      final response = await http.post(ApiConfig.endpoint('/api/batch-process'), headers: {'Content-Type': 'application/json', ...authHeaders}, body: jsonEncode({'fileIds': fileIds, 'operation': _operation}));
       final data = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200) throw Exception(data['message']);
       if (!mounted) return;
@@ -65,7 +72,7 @@ class _BatchProcessorPageState extends State<BatchProcessorPage> {
       const SizedBox(height: 8),
       const Text('Queue multiple files for a single operation and keep the workflow moving.'),
       const SizedBox(height: 24),
-      DropdownButtonFormField<String>(initialValue: _operation, decoration: const InputDecoration(labelText: 'Operation'), items: const [DropdownMenuItem(value: 'enhance', child: Text('Enhance')), DropdownMenuItem(value: 'resize', child: Text('Resize')), DropdownMenuItem(value: 'convert', child: Text('Convert'))], onChanged: (value) { if (value != null) setState(() => _operation = value); }),
+      DropdownButtonFormField<String>(initialValue: _operation, decoration: const InputDecoration(labelText: 'Operation'), items: const [DropdownMenuItem(value: 'enhance', child: Text('Enhance')), DropdownMenuItem(value: 'resize', child: Text('Resize'))], onChanged: (value) { if (value != null) setState(() => _operation = value); }),
       const SizedBox(height: 16),
       OutlinedButton.icon(onPressed: _loading ? null : _chooseFiles, icon: const Icon(Icons.folder_open), label: Text(_files.isEmpty ? 'Choose files' : '${_files.length} files selected')),
       ..._files.map((file) => ListTile(dense: true, leading: const Icon(Icons.insert_drive_file_outlined), title: Text(file.name), subtitle: Text('${file.size} bytes'))),
