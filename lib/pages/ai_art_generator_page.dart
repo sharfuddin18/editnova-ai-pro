@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../network/api_config.dart';
 
 class AIArtGeneratorPage extends StatefulWidget {
   const AIArtGeneratorPage({super.key});
@@ -56,7 +57,7 @@ class _AIArtGeneratorPageState extends State<AIArtGeneratorPage>
 
     try {
       final response = await http.post(
-        Uri.parse('http://localhost:5001/api/generate-art'),
+        ApiConfig.endpoint('/api/generate-art'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'description': _promptController.text,

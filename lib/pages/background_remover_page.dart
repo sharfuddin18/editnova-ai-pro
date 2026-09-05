@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:image/image.dart' as img;
 import 'dart:io';
 
 class BackgroundRemoverPage extends StatefulWidget {
@@ -32,15 +34,46 @@ class _BackgroundRemoverPageState extends State<BackgroundRemoverPage> {
       _isProcessing = true;
     });
 
-    await Future.delayed(const Duration(seconds: 3));
-
     if (!mounted) return;
 
-    setState(() {
-      _processedImage =
-          _originalImage; // In real app, this would be the processed image
-      _isProcessing = false;
-    });
+    try {
+        final source = img.decodeImage(await _originalImage!.readAsBytes());
+        if (source == null) throw const FormatException('Unsupported image');
+        final corner = source.getPixel(0, 0);
+        final output = img.Image.fromBytes(
+          width: source.width,
+          height: source.height,
+          bytes: source.getBytes(order: img.ChannelOrder.rgba).buffer,
+          numChannels: 4,
+        );
+        for (var y = 0; y < output.height; y++) {
+          for (var x = 0; x < output.width; x++) {
+            final pixel = output.getPixel(x, y);
+            final distance = ((pixel.r - corner.r).abs() +
+                    (pixel.g - corner.g).abs() +
+                    (pixel.b - corner.b).abs()) /
+                3;
+            if (distance < 32) {
+              output.setPixelRgba(x, y, pixel.r, pixel.g, pixel.b, 0);
+            }
+          }
+        }
+        final directory = await getApplicationDocumentsDirectory();
+        final path = '${directory.path}/editnova_no_background.png';
+        await File(path).writeAsBytes(img.encodePng(output));
+        if (!mounted) return;
+        setState(() {
+          _processedImage = File(path);
+          _isProcessing = false;
+        });
+    } catch (_) {
+        if (!mounted) return;
+        setState(() => _isProcessing = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not process this image format.')),
+        );
+        return;
+    }
 
     if (!mounted) return;
 

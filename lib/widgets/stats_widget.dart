@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../network/api_config.dart';
 
 class StatsWidget extends StatefulWidget {
   const StatsWidget({super.key});
@@ -27,23 +28,14 @@ class _StatsWidgetState extends State<StatsWidget> {
   Future<void> _loadStats() async {
     try {
       final response =
-          await http.get(Uri.parse('http://localhost:5001/api/usage'));
+          await http.get(ApiConfig.endpoint('/api/usage'));
       if (response.statusCode == 200) {
         setState(() {
           stats = json.decode(response.body);
         });
       }
     } catch (e) {
-      // Use default values if API is not available
-      setState(() {
-        stats = {
-          "active_users": 1203,
-          "premium_users": 205,
-          "background_removed": 540,
-          "files_scanned": 134,
-          "threats_blocked": 3
-        };
-      });
+      if (mounted) setState(() => stats = {});
     }
   }
 

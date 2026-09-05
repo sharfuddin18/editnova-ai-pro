@@ -32,6 +32,7 @@ migrate_working_dir/
 .pub-cache/
 .pub/
 /build/
+/android/build/
 
 # Symbolication related
 app.*.symbols
@@ -44,4 +45,7 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 .env
+android/key.properties
+android/**/*.jks
+data/
 .gradle/

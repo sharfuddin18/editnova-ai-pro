@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:editnova/pages/home_page.dart';
+import 'package:editnova/utils/theme.dart';
 
 void main() {
   runApp(const EditNovaApp());
@@ -13,10 +14,9 @@ class EditNovaApp extends StatelessWidget {
     return MaterialApp(
       title: 'EditNova',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        scaffoldBackgroundColor: Colors.white,
-      ),
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: ThemeMode.system,
       home: const HomePage(),
     );
   }

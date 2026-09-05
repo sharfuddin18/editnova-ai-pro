@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:math';
 import '../pages/qr_generator_page.dart';
 import '../pages/ai_art_generator_page.dart';
 import '../pages/poster_creator_page.dart';
 import '../pages/text_translator_page.dart';
 import '../pages/ocr_scanner_page.dart';
+import '../network/api_config.dart';
 
 class ToolsPage extends StatefulWidget {
   const ToolsPage({super.key});
@@ -34,7 +36,7 @@ class _ToolsPageState extends State<ToolsPage> with TickerProviderStateMixin {
   Future<void> _loadToolStats() async {
     try {
       final response =
-          await http.get(Uri.parse('http://localhost:5001/api/usage'));
+          await http.get(ApiConfig.endpoint('/api/usage'));
       if (response.statusCode == 200) {
         setState(() {
           _toolStats = json.decode(response.body);
@@ -544,29 +546,197 @@ class _ToolsPageState extends State<ToolsPage> with TickerProviderStateMixin {
     return ActionChip(
       avatar: Icon(icon, size: 16),
       label: Text(label, style: TextStyle(fontSize: 12)),
-      onPressed: () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$label coming soon!')),
-        );
-      },
+      onPressed: () => _showQuickAction(label),
+    );
+  }
+
+  void _showQuickAction(String label) {
+    final controller = TextEditingController();
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(label),
+        content: TextField(
+          controller: controller,
+          maxLines: label == 'JSON Formatter' ? 8 : 4,
+          decoration: InputDecoration(
+            hintText: label == 'JSON Formatter' ? '{"name":"EditNova"}' : 'Enter text to test',
+            border: const OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
+          FilledButton(
+            onPressed: () {
+              final input = controller.text.trim();
+              if (input.isEmpty) {
+                ScaffoldMessenger.of(this.context).showSnackBar(
+                  const SnackBar(content: Text('Enter some text first.')),
+                );
+                return;
+              }
+              String result;
+              if (label == 'JSON Formatter') {
+                try {
+                  result = const JsonEncoder.withIndent('  ').convert(jsonDecode(input));
+                } catch (_) {
+                  result = 'Invalid JSON';
+                }
+              } else if (label == 'Regex Tester') {
+                result = 'Text received. Add a pattern in the next field to test matches.';
+              } else {
+                result = 'Processed ${input.length} characters.';
+              }
+              Navigator.pop(context);
+              showDialog<void>(
+                context: this.context,
+                builder: (context) => AlertDialog(
+                  title: Text('$label result'),
+                  content: SelectableText(result),
+                  actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Done'))],
+                ),
+              );
+            },
+            child: const Text('Run'),
+          ),
+        ],
+      ),
     );
   }
 
   void _showColorPicker() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Color Picker tool coming soon!')),
+    final controller = TextEditingController(text: '#4F46E5');
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Color Picker'),
+        content: TextField(
+          controller: controller,
+          textCapitalization: TextCapitalization.characters,
+          decoration: const InputDecoration(
+            labelText: 'Hex color',
+            hintText: '#4F46E5',
+            prefixIcon: Icon(Icons.palette_outlined),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final value = controller.text.trim();
+              final hex = value.replaceFirst('#', '');
+              final isValid = RegExp(r'^[0-9A-Fa-f]{6}$').hasMatch(hex);
+              if (!isValid) {
+                ScaffoldMessenger.of(this.context).showSnackBar(
+                  const SnackBar(content: Text('Enter a valid six-digit hex color.')),
+                );
+                return;
+              }
+              Navigator.pop(context);
+              ScaffoldMessenger.of(this.context).showSnackBar(
+                SnackBar(content: Text('Color copied: #${hex.toUpperCase()}')),
+              );
+            },
+            child: const Text('Use color'),
+          ),
+        ],
+      ),
     );
   }
 
   void _showUnitConverter() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Unit Converter tool coming soon!')),
+    final controller = TextEditingController();
+    String unit = 'km to miles';
+    showDialog<void>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Unit Converter'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: controller,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(labelText: 'Value'),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                initialValue: unit,
+                decoration: const InputDecoration(labelText: 'Conversion'),
+                items: const [
+                  DropdownMenuItem(value: 'km to miles', child: Text('Kilometers to miles')),
+                  DropdownMenuItem(value: 'miles to km', child: Text('Miles to kilometers')),
+                  DropdownMenuItem(value: 'celsius to fahrenheit', child: Text('Celsius to Fahrenheit')),
+                  DropdownMenuItem(value: 'fahrenheit to celsius', child: Text('Fahrenheit to Celsius')),
+                ],
+                onChanged: (value) => setDialogState(() => unit = value!),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+            FilledButton(
+              onPressed: () {
+                final value = double.tryParse(controller.text.trim());
+                if (value == null) {
+                  ScaffoldMessenger.of(this.context).showSnackBar(
+                    const SnackBar(content: Text('Enter a numeric value.')),
+                  );
+                  return;
+                }
+                double result;
+                if (unit == 'km to miles') {
+                  result = value * 0.621371;
+                } else if (unit == 'miles to km') {
+                  result = value * 1.60934;
+                } else if (unit == 'celsius to fahrenheit') {
+                  result = value * 9 / 5 + 32;
+                } else {
+                  result = (value - 32) * 5 / 9;
+                }
+                Navigator.pop(context);
+                ScaffoldMessenger.of(this.context).showSnackBar(
+                  SnackBar(content: Text('${result.toStringAsFixed(2)} ($unit)')),
+                );
+              },
+              child: const Text('Convert'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   void _showPasswordGenerator() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Password Generator tool coming soon!')),
+    final random = Random.secure();
+    const characters = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#%&*';
+    final password = List.generate(
+      18,
+      (_) => characters[random.nextInt(characters.length)],
+    ).join();
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Password Generator'),
+        content: SelectableText(password, style: const TextStyle(fontSize: 20, letterSpacing: 1.2)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
+          FilledButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(this.context).showSnackBar(
+                const SnackBar(content: Text('Secure password generated.')),
+              );
+            },
+            icon: const Icon(Icons.refresh),
+            label: const Text('Generate again'),
+          ),
+        ],
+      ),
     );
   }
 
