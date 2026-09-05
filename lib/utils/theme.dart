@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  static const Color primaryColor = Color(0xFF0F766E);
-  static const Color secondaryColor = Color(0xFFF59E0B);
-  static const Color backgroundColor = Color(0xFFF6F8F7);
+  static const Color primaryColor = Color(0xFF6C63FF);
+  static const Color secondaryColor = Color(0xFFFF6584);
+  static const Color backgroundColor = Color(0xFFF5F5F5);
 
   static ThemeData lightTheme = ThemeData(
-    colorScheme: ColorScheme.fromSeed(seedColor: primaryColor, brightness: Brightness.light),
+    primarySwatch: Colors.deepPurple,
     primaryColor: primaryColor,
     scaffoldBackgroundColor: backgroundColor,
     appBarTheme: AppBarTheme(
-      backgroundColor: Colors.white,
-      foregroundColor: Color(0xFF12312D),
+      backgroundColor: primaryColor,
+      foregroundColor: Colors.white,
       elevation: 0,
       centerTitle: true,
       titleTextStyle: TextStyle(
@@ -55,7 +55,7 @@ class AppTheme {
       ),
     ),
     cardTheme: CardThemeData(
-      color: Color(0xFF1F2A28),
+      color: Color(0xFF1F1F1F),
       elevation: 4,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),

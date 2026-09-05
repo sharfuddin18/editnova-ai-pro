@@ -1,4 +1,4 @@
-package com.sharfuddin.editnova
+package com.example.editnova
 
 import io.flutter.embedding.android.FlutterActivity
 

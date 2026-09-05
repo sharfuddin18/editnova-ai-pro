@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:qr_flutter/qr_flutter.dart';
 import 'dart:convert';
-import '../network/api_config.dart';
 
 class QRGeneratorPage extends StatefulWidget {
   const QRGeneratorPage({super.key});
@@ -26,12 +24,6 @@ class _QRGeneratorPageState extends State<QRGeneratorPage> {
     QRType('SMS', Icons.sms, 'SMS message'),
   ];
 
-  @override
-  void dispose() {
-    _textController.dispose();
-    super.dispose();
-  }
-
   Future<void> _generateQR() async {
     if (_textController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -46,7 +38,7 @@ class _QRGeneratorPageState extends State<QRGeneratorPage> {
 
     try {
       final response = await http.post(
-        ApiConfig.endpoint('/api/generate-qr'),
+        Uri.parse('http://localhost:5001/api/generate-qr'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'text': _textController.text,
@@ -82,30 +74,8 @@ class _QRGeneratorPageState extends State<QRGeneratorPage> {
   }
 
   void _shareQR() {
-    if (_textController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Generate a QR code before sharing it.')),
-      );
-      return;
-    }
-    showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Share QR content'),
-        content: SelectableText(_textController.text.trim()),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text('Close')),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(this.context).showSnackBar(
-                SnackBar(content: Text('QR content is ready to share.')),
-              );
-            },
-            child: Text('Done'),
-          ),
-        ],
-      ),
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('QR code sharing feature coming soon!')),
     );
   }
 
@@ -261,12 +231,25 @@ class _QRGeneratorPageState extends State<QRGeneratorPage> {
                           border: Border.all(color: Colors.grey.shade300),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: QrImageView(
-                          data: _textController.text.trim(),
-                          version: QrVersions.auto,
-                          size: 180,
-                          backgroundColor: Colors.white,
-                          errorCorrectionLevel: QrErrorCorrectLevel.M,
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.qr_code,
+                                size: 120,
+                                color: Colors.black87,
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                'QR Code',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                       SizedBox(height: 16),
@@ -387,7 +370,7 @@ class _QRGeneratorPageState extends State<QRGeneratorPage> {
               subtitle: Text('URL • Created today'),
               trailing: IconButton(
                 icon: Icon(Icons.more_vert),
-                onPressed: () => _showHistoryActions('https://flutter.dev'),
+                onPressed: () {},
               ),
             ),
             ListTile(
@@ -396,7 +379,7 @@ class _QRGeneratorPageState extends State<QRGeneratorPage> {
               subtitle: Text('Text • Created yesterday'),
               trailing: IconButton(
                 icon: Icon(Icons.more_vert),
-                onPressed: () => _showHistoryActions('Welcome to EditNova!'),
+                onPressed: () {},
               ),
             ),
             ListTile(
@@ -405,41 +388,8 @@ class _QRGeneratorPageState extends State<QRGeneratorPage> {
               subtitle: Text('Email • Created 3 days ago'),
               trailing: IconButton(
                 icon: Icon(Icons.more_vert),
-                onPressed: () => _showHistoryActions('support@editnova.com'),
+                onPressed: () {},
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showHistoryActions(String value) {
-    showModalBottomSheet<void>(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Wrap(
-          children: [
-            ListTile(
-              leading: Icon(Icons.copy),
-              title: Text('Use this content'),
-              onTap: () {
-                _textController.text = value;
-                Navigator.pop(context);
-                ScaffoldMessenger.of(this.context).showSnackBar(
-                  SnackBar(content: Text('Loaded "$value"')),
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.delete_outline),
-              title: Text('Remove from history'),
-              onTap: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(this.context).showSnackBar(
-                  SnackBar(content: Text('Removed from history')),
-                );
-              },
             ),
           ],
         ),

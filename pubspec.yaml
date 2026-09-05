@@ -25,7 +25,6 @@ dependencies:
   lottie: ^3.3.1
   speech_to_text: ^7.2.0
   flutter_tts: ^4.2.3
-  qr_flutter: ^4.1.0
 
 dev_dependencies:
   flutter_test:

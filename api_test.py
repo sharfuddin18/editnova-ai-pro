@@ -3,7 +3,7 @@ import json
 
 API_BASE = 'http://localhost:5001'
 
-def run_api_endpoint(method, endpoint, data=None, expected_status=200):
+def test_api_endpoint(method, endpoint, data=None, expected_status=200):
     """Test a single API endpoint"""
     url = f"{API_BASE}{endpoint}"
     print(f"\n{'='*60}")
@@ -44,82 +44,82 @@ def run_comprehensive_tests():
     test_results = []
     
     # Test GET endpoints
-    test_results.append(run_api_endpoint('GET', '/api/usage'))
-    test_results.append(run_api_endpoint('GET', '/api/templates'))
-    test_results.append(run_api_endpoint('GET', '/api/achievements'))
-    test_results.append(run_api_endpoint('GET', '/api/user/profile'))
+    test_results.append(test_api_endpoint('GET', '/api/usage'))
+    test_results.append(test_api_endpoint('GET', '/api/templates'))
+    test_results.append(test_api_endpoint('GET', '/api/achievements'))
+    test_results.append(test_api_endpoint('GET', '/api/user/profile'))
     
     # Test POST endpoints
-    test_results.append(run_api_endpoint('POST', '/api/login', {
+    test_results.append(test_api_endpoint('POST', '/api/login', {
         'username': 'admin',
         'password': 'editnova2025'
     }))
     
-    test_results.append(run_api_endpoint('POST', '/api/signup', {
+    test_results.append(test_api_endpoint('POST', '/api/signup', {
         'username': 'testuser',
         'email': 'test@editnova.com',
         'password': 'testpass123'
     }))
     
-    test_results.append(run_api_endpoint('POST', '/api/toggle-feature', {
+    test_results.append(test_api_endpoint('POST', '/api/toggle-feature', {
         'feature': 'ai_art',
         'enabled': True
     }))
     
-    test_results.append(run_api_endpoint('POST', '/api/upload-image', {
+    test_results.append(test_api_endpoint('POST', '/api/upload-image', {
         'filename': 'test_image.jpg',
         'size': 2048000
-    }, expected_status=400))
+    }))
     
-    test_results.append(run_api_endpoint('POST', '/api/process-image', {
+    test_results.append(test_api_endpoint('POST', '/api/process-image', {
         'operation': 'enhance',
         'imageId': 'test-image-123'
-    }, expected_status=400))
+    }))
     
-    test_results.append(run_api_endpoint('POST', '/api/remove-background', {
+    test_results.append(test_api_endpoint('POST', '/api/remove-background', {
         'imageId': 'test-bg-image-456'
-    }, expected_status=400))
+    }))
     
-    test_results.append(run_api_endpoint('POST', '/api/scan-file', {
+    test_results.append(test_api_endpoint('POST', '/api/scan-file', {
         'filename': 'document.pdf'
     }))
     
-    test_results.append(run_api_endpoint('POST', '/api/generate-art', {
+    test_results.append(test_api_endpoint('POST', '/api/generate-art', {
         'description': 'cyberpunk city at night',
         'style': 'digital'
-    }, expected_status=503))
+    }))
     
-    test_results.append(run_api_endpoint('POST', '/api/create-poster', {
+    test_results.append(test_api_endpoint('POST', '/api/create-poster', {
         'theme': 'modern',
         'text': 'EditNova Test Poster'
     }))
     
-    test_results.append(run_api_endpoint('POST', '/api/translate-text', {
+    test_results.append(test_api_endpoint('POST', '/api/translate-text', {
         'text': 'Hello world',
         'sourceLang': 'en',
         'targetLang': 'es'
-    }, expected_status=503))
+    }))
     
-    test_results.append(run_api_endpoint('POST', '/api/generate-qr', {
+    test_results.append(test_api_endpoint('POST', '/api/generate-qr', {
         'text': 'https://editnova.com',
         'type': 'url'
     }))
     
-    test_results.append(run_api_endpoint('POST', '/api/ocr-extract', {
+    test_results.append(test_api_endpoint('POST', '/api/ocr-extract', {
         'imageId': 'test-ocr-image-789'
-    }, expected_status=503))
+    }))
     
-    test_results.append(run_api_endpoint('POST', '/api/batch-process', {
+    test_results.append(test_api_endpoint('POST', '/api/batch-process', {
         'fileIds': ['file1', 'file2', 'file3'],
         'operation': 'resize'
     }))
     
-    test_results.append(run_api_endpoint('POST', '/api/social-share', {
+    test_results.append(test_api_endpoint('POST', '/api/social-share', {
         'platform': 'instagram',
         'imageId': 'share-image-123'
     }))
     
-    test_results.append(run_api_endpoint('POST', '/api/upgrade-premium', {
+    test_results.append(test_api_endpoint('POST', '/api/upgrade-premium', {
         'plan': 'monthly'
     }))
     

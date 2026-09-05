@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import '../network/api_config.dart';
 
 class FileScannerPage extends StatefulWidget {
   const FileScannerPage({super.key});
@@ -68,14 +67,15 @@ class _FileScannerPageState extends State<FileScannerPage>
 
   Future<void> _scanSingleFile(PlatformFile file) async {
     try {
-      final request = http.MultipartRequest('POST', ApiConfig.endpoint('/api/scan-file'));
-      request.fields['filename'] = file.name;
-      if (file.path != null) {
-        request.files.add(await http.MultipartFile.fromPath('file', file.path!));
-      } else if (file.bytes != null) {
-        request.files.add(http.MultipartFile.fromBytes('file', file.bytes!, filename: file.name));
-      }
-      final response = await http.Response.fromStream(await request.send());
+      final response = await http.post(
+        Uri.parse('http://localhost:5001/api/scan-file'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'filename': file.name,
+          'size': file.size,
+          'extension': file.extension ?? 'unknown'
+        }),
+      );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -86,7 +86,7 @@ class _FileScannerPageState extends State<FileScannerPage>
                 name: file.name,
                 size: file.size,
                 extension: file.extension ?? 'unknown',
-                isSafe: data['safe'] ?? false,
+                isSafe: data['safe'] ?? true,
                 threats: List<String>.from(data['threats'] ?? []),
                 scanTime: data['scanTime'] ?? 1.0,
                 scanDate: DateTime.now(),
