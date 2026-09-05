@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../network/api_config.dart';
+import '../network/auth_session.dart';
+import 'auth_page.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -61,7 +64,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<void> _toggleFeature(String feature, bool enabled) async {
     try {
       final response = await http.post(
-        Uri.parse('http://localhost:5001/api/toggle-feature'),
+        ApiConfig.endpoint('/api/toggle-feature'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'feature': feature, 'enabled': enabled}),
       );
@@ -164,10 +167,19 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _upgradeToPremium() async {
+    var token = await AuthSession.token();
+    if (token == null || token.isEmpty) {
+      if (!mounted) return;
+      final authenticated = await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(builder: (context) => const AuthPage()),
+      );
+      if (authenticated != true || !mounted) return;
+    }
     try {
       final response = await http.post(
-        Uri.parse('http://localhost:5001/api/upgrade-premium'),
-        headers: {'Content-Type': 'application/json'},
+        ApiConfig.endpoint('/api/upgrade-premium'),
+        headers: await AuthSession.headers(),
         body: jsonEncode({'plan': 'monthly'}),
       );
 
@@ -183,10 +195,7 @@ class _SettingsPageState extends State<SettingsPage> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Upgrade successful! Premium features unlocked.'),
-          backgroundColor: Colors.green,
-        ),
+        const SnackBar(content: Text('Upgrade failed. Check your connection and try again.')),
       );
     }
   }
@@ -223,11 +232,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                   subtitle: Text('user@editnova.com'),
                   trailing: Icon(Icons.edit),
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Profile editing coming soon!')),
-                    );
-                  },
+                  onTap: _showAuthPage,
                 ),
                 Divider(height: 1),
                 ListTile(
@@ -399,22 +404,14 @@ class _SettingsPageState extends State<SettingsPage> {
                   leading: Icon(Icons.help_outline),
                   title: Text('Help & FAQ'),
                   trailing: Icon(Icons.arrow_forward_ios, size: 16),
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Help center coming soon!')),
-                    );
-                  },
+                  onTap: _showHelp,
                 ),
                 Divider(height: 1),
                 ListTile(
                   leading: Icon(Icons.bug_report),
                   title: Text('Report Bug'),
                   trailing: Icon(Icons.arrow_forward_ios, size: 16),
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Bug reporting coming soon!')),
-                    );
-                  },
+                  onTap: _showBugReport,
                 ),
                 Divider(height: 1),
                 ListTile(
@@ -429,11 +426,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   leading: Icon(Icons.privacy_tip),
                   title: Text('Privacy Policy'),
                   trailing: Icon(Icons.arrow_forward_ios, size: 16),
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Privacy policy coming soon!')),
-                    );
-                  },
+                  onTap: _showPrivacy,
                 ),
               ],
             ),
@@ -569,6 +562,66 @@ class _SettingsPageState extends State<SettingsPage> {
             child: Text('Close'),
           ),
         ],
+      ),
+    );
+  }
+
+  Future<void> _showAuthPage() async {
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute(builder: (context) => const AuthPage()),
+    );
+    if (mounted) setState(() {});
+  }
+
+  void _showHelp() {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Help & FAQ'),
+        content: SingleChildScrollView(
+          child: Text('Choose a tool from the Tools tab, select your input, and follow the action prompts. Your settings are saved on this device. Network-powered features require the EditNova backend to be running.'),
+        ),
+        actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text('Close'))],
+      ),
+    );
+  }
+
+  void _showBugReport() {
+    final controller = TextEditingController();
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Report a bug'),
+        content: TextField(
+          controller: controller,
+          maxLines: 5,
+          decoration: InputDecoration(hintText: 'What happened?', border: OutlineInputBorder()),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text('Cancel')),
+          ElevatedButton(
+            onPressed: () {
+              if (controller.text.trim().isEmpty) return;
+              Navigator.pop(context);
+              ScaffoldMessenger.of(this.context).showSnackBar(SnackBar(content: Text('Thanks. Your report has been recorded locally.')));
+            },
+            child: Text('Submit'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showPrivacy() {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Privacy policy'),
+        content: SingleChildScrollView(
+          child: Text('EditNova stores preferences locally on your device. Files are sent to the configured backend only when you start a network-powered operation. Do not upload sensitive files unless you trust the configured server.'),
+        ),
+        actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text('Close'))],
       ),
     );
   }

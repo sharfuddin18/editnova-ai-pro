@@ -6,6 +6,8 @@ import '../widgets/stats_widget.dart';
 import 'image_editor_page.dart';
 import 'background_remover_page.dart';
 import 'file_scanner_page.dart';
+import 'settings_page.dart';
+import 'tools_page.dart';
 import '../nova_assistant_page.dart';
 
 class HomePage extends StatefulWidget {
@@ -21,9 +23,9 @@ class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
 
   final List<Widget> _pages = [
-    HomeContent(),
-    Center(child: Text('Tools', style: TextStyle(fontSize: 24))),
-    Center(child: Text('Settings', style: TextStyle(fontSize: 24))),
+    const HomeContent(),
+    const ToolsPage(),
+    const SettingsPage(),
   ];
 
   @override
@@ -57,12 +59,14 @@ class _HomePageState extends State<HomePage> {
         title: Text('EditNova'),
         actions: [
           IconButton(
-            icon: Icon(Icons.notifications),
-            onPressed: () {},
+            icon: const Icon(Icons.notifications_outlined),
+            tooltip: 'Notifications',
+            onPressed: () => _showNotifications(context),
           ),
           IconButton(
-            icon: Icon(Icons.account_circle),
-            onPressed: () {},
+            icon: const Icon(Icons.account_circle_outlined),
+            tooltip: 'Profile',
+            onPressed: () => setState(() => _selectedIndex = 2),
           ),
         ],
       ),
@@ -132,6 +136,31 @@ class _HomePageState extends State<HomePage> {
             },
           ),
         ],
+      ),
+    );
+  }
+
+  void _showNotifications(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+          children: const [
+            ListTile(
+              leading: CircleAvatar(child: Icon(Icons.auto_awesome)),
+              title: Text('Nova is ready'),
+              subtitle: Text('Create, edit, and organize your next project.'),
+            ),
+            ListTile(
+              leading: CircleAvatar(child: Icon(Icons.tips_and_updates_outlined)),
+              title: Text('New tools available'),
+              subtitle: Text('Explore the full toolkit from the Tools tab.'),
+            ),
+          ],
+        ),
       ),
     );
   }
