@@ -19,6 +19,71 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
   double _contrast = 0.0;
   double _saturation = 0.0;
   Color _filterColor = Colors.transparent;
+  final List<List<double>> _history = [const [0.0, 0.0, 0.0]];
+  int _historyIndex = 0;
+
+  List<double> get _currentAdjustment => _history[_historyIndex];
+
+  void _setAdjustment(int index, double value) {
+    final next = List<double>.from(_currentAdjustment);
+    next[index] = value;
+    if (next[index] == _currentAdjustment[index]) return;
+    setState(() {
+      if (_historyIndex < _history.length - 1) {
+        _history.removeRange(_historyIndex + 1, _history.length);
+      }
+      _history.add(next);
+      _historyIndex++;
+      _brightness = next[0];
+      _contrast = next[1];
+      _saturation = next[2];
+    });
+  }
+
+  void _undo() {
+    if (_historyIndex == 0) return;
+    setState(() {
+      _historyIndex--;
+      _applyAdjustment(_currentAdjustment);
+    });
+  }
+
+  void _redo() {
+    if (_historyIndex == _history.length - 1) return;
+    setState(() {
+      _historyIndex++;
+      _applyAdjustment(_currentAdjustment);
+    });
+  }
+
+  void _resetAdjustments() {
+    _setAdjustment(0, 0.0);
+    _setAdjustment(1, 0.0);
+    _setAdjustment(2, 0.0);
+  }
+
+  void _applyAdjustment(List<double> adjustment) {
+    _brightness = adjustment[0];
+    _contrast = adjustment[1];
+    _saturation = adjustment[2];
+  }
+
+  ColorFilter _adjustmentFilter() {
+    final brightness = _brightness * 255;
+    final contrast = _contrast + 1;
+    final saturation = _saturation + 1;
+    final inverse = 1 - saturation;
+    final red = 0.213 * inverse;
+    final green = 0.715 * inverse;
+    final blue = 0.072 * inverse;
+    final offset = 128 * (1 - contrast) + brightness;
+    return ColorFilter.matrix([
+      (red + saturation) * contrast, green * contrast, blue * contrast, 0, offset,
+      red * contrast, (green + saturation) * contrast, blue * contrast, 0, offset,
+      red * contrast, green * contrast, (blue + saturation) * contrast, 0, offset,
+      0, 0, 0, 1, 0,
+    ]);
+  }
 
   Future<void> _pickImage(ImageSource source) async {
     final XFile? image = await _picker.pickImage(source: source);
@@ -115,13 +180,16 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
                   ? ClipRRect(
                       borderRadius: BorderRadius.circular(12),
                       child: ColorFiltered(
-                        colorFilter: ColorFilter.mode(
-                          _filterColor.withValues(alpha: 0.3),
-                          BlendMode.overlay,
-                        ),
-                        child: Image.file(
-                          _image!,
-                          fit: BoxFit.contain,
+                        colorFilter: _adjustmentFilter(),
+                        child: ColorFiltered(
+                          colorFilter: ColorFilter.mode(
+                            _filterColor.withValues(alpha: 0.3),
+                            BlendMode.overlay,
+                          ),
+                          child: Image.file(
+                            _image!,
+                            fit: BoxFit.contain,
+                          ),
                         ),
                       ),
                     )
@@ -164,13 +232,13 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
                   ),
                   SizedBox(height: 16),
                   _buildSlider('Brightness', _brightness, (value) {
-                    setState(() => _brightness = value);
+                    _setAdjustment(0, value);
                   }),
                   _buildSlider('Contrast', _contrast, (value) {
-                    setState(() => _contrast = value);
+                    _setAdjustment(1, value);
                   }),
                   _buildSlider('Saturation', _saturation, (value) {
-                    setState(() => _saturation = value);
+                    _setAdjustment(2, value);
                   }),
                   SizedBox(height: 16),
                   Row(
@@ -185,6 +253,25 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
                         onPressed: _showColorPicker,
                         icon: Icon(Icons.color_lens),
                         label: Text('Filter'),
+                      ),
+                    ],
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      IconButton(
+                        onPressed: _historyIndex > 0 ? _undo : null,
+                        icon: const Icon(Icons.undo),
+                        tooltip: 'Undo adjustments',
+                      ),
+                      IconButton(
+                        onPressed: _historyIndex < _history.length - 1 ? _redo : null,
+                        icon: const Icon(Icons.redo),
+                        tooltip: 'Redo adjustments',
+                      ),
+                      TextButton(
+                        onPressed: _historyIndex == 0 ? null : _resetAdjustments,
+                        child: const Text('Reset'),
                       ),
                     ],
                   ),
