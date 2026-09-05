@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:path_provider/path_provider.dart';
 import 'dart:convert';
+import 'dart:io';
 import '../network/api_config.dart';
 
 class QRGeneratorPage extends StatefulWidget {
@@ -66,6 +68,8 @@ class _QRGeneratorPageState extends State<QRGeneratorPage> {
             backgroundColor: Colors.green,
           ),
         );
+      } else {
+        throw Exception('QR generation failed: ${response.statusCode}');
       }
     } catch (e) {
       if (!mounted) return;
@@ -109,10 +113,29 @@ class _QRGeneratorPageState extends State<QRGeneratorPage> {
     );
   }
 
-  void _downloadQR() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('QR code downloaded to gallery!')),
-    );
+  Future<void> _downloadQR() async {
+    if (_textController.text.trim().isEmpty) return;
+    try {
+      final painter = QrPainter(
+        data: _textController.text.trim(),
+        version: QrVersions.auto,
+        errorCorrectionLevel: QrErrorCorrectLevel.M,
+      );
+      final imageData = await painter.toImageData(1024);
+      if (imageData == null) throw Exception('Could not render QR code');
+      final directory = await getApplicationDocumentsDirectory();
+      final path = '${directory.path}/editnova_qr_${DateTime.now().millisecondsSinceEpoch}.png';
+      await File(path).writeAsBytes(imageData.buffer.asUint8List());
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('QR code saved to $path')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not save the QR code.')),
+      );
+    }
   }
 
   @override

@@ -518,15 +518,71 @@ def batch_process():
     file_ids = data.get('fileIds')
     if not isinstance(file_ids, list) or not file_ids or _required(data, "operation"):
         return jsonify({"status": "error", "message": "fileIds and operation are required"}), 400
+    operation = str(data['operation']).strip().lower()
+    if operation not in {'enhance', 'resize', 'grayscale', 'convert'}:
+        return jsonify({"status": "error", "message": "unsupported batch operation"}), 400
     job_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
     with _database() as connection:
         connection.execute(
             'INSERT INTO jobs (id, owner_id, kind, status, result, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            (job_id, _request_user_id(), data['operation'], 'queued', json.dumps({'fileIds': file_ids}), now, now),
+            (job_id, _request_user_id(), operation, 'queued', json.dumps({'fileIds': file_ids}), now, now),
         )
-    _record_event('batch_queued')
-    return jsonify({"status": "success", "jobId": job_id, "total": len(file_ids), "operation": data['operation'], "queued": True})
+    results = []
+    failure = None
+    try:
+        from PIL import Image, ImageEnhance
+        with _database() as connection:
+            files = [connection.execute(
+                'SELECT id, stored_name FROM files WHERE id = ?', (file_id,)
+            ).fetchone() for file_id in file_ids]
+        if any(stored is None for stored in files):
+            raise FileNotFoundError('one or more files were not found')
+        for stored in files:
+            source_path = STORAGE_PATH / stored['stored_name']
+            if not source_path.is_file():
+                raise FileNotFoundError('file content is unavailable')
+            image = Image.open(source_path).convert('RGB')
+            if operation == 'enhance':
+                image = ImageEnhance.Contrast(ImageEnhance.Sharpness(image).enhance(1.25)).enhance(1.15)
+            elif operation == 'grayscale':
+                image = image.convert('L').convert('RGB')
+            elif operation == 'resize':
+                image.thumbnail((2048, 2048))
+            output_id = str(uuid.uuid4())
+            output_name = f'{output_id}.jpg'
+            image.save(STORAGE_PATH / output_name, quality=92)
+            output_path = STORAGE_PATH / output_name
+            with _database() as connection:
+                connection.execute(
+                    'INSERT INTO files (id, owner_id, original_name, stored_name, content_type, size, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                    (output_id, _request_user_id(), f'{operation}.jpg', output_name, 'image/jpeg', output_path.stat().st_size, datetime.now(timezone.utc).isoformat()),
+                )
+            results.append({'sourceId': stored['id'], 'fileId': output_id})
+        state = 'completed'
+    except (FileNotFoundError, OSError, ValueError) as error:
+        failure = str(error)
+        state = 'failed'
+    result = {'fileIds': file_ids, 'outputs': results}
+    if failure:
+        result['error'] = failure
+    updated_at = datetime.now(timezone.utc).isoformat()
+    with _database() as connection:
+        connection.execute(
+            'UPDATE jobs SET status = ?, result = ?, updated_at = ? WHERE id = ?',
+            (state, json.dumps(result), updated_at, job_id),
+        )
+    _record_event('batch_completed' if state == 'completed' else 'batch_failed')
+    return jsonify({
+        "status": "success",
+        "jobId": job_id,
+        "total": len(file_ids),
+        "operation": operation,
+        "queued": False,
+        "state": state,
+        "outputs": results,
+        "error": failure,
+    })
 
 
 @app.route('/api/jobs/<job_id>', methods=['GET'])

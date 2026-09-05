@@ -236,6 +236,13 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
                 Divider(height: 1),
                 ListTile(
+                  leading: const Icon(Icons.logout, color: Colors.red),
+                  title: const Text('Sign out'),
+                  subtitle: const Text('Clear this device session'),
+                  onTap: _signOut,
+                ),
+                Divider(height: 1),
+                ListTile(
                   leading: Icon(Icons.star, color: Colors.amber),
                   title: Text('Upgrade to Premium'),
                   subtitle: Text('Unlock all features & remove ads'),
@@ -574,6 +581,16 @@ class _SettingsPageState extends State<SettingsPage> {
     if (mounted) setState(() {});
   }
 
+  Future<void> _signOut() async {
+    await AuthSession.clear();
+    if (!mounted) return;
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute(builder: (context) => const AuthPage()),
+    );
+    if (mounted) setState(() {});
+  }
+
   void _showHelp() {
     showDialog<void>(
       context: context,
@@ -640,8 +657,13 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           ElevatedButton(
             onPressed: () async {
+              final token = await AuthSession.token();
+              final username = await AuthSession.username();
               final prefs = await SharedPreferences.getInstance();
               await prefs.clear();
+              if (token != null && username != null) {
+                await AuthSession.save(token, username);
+              }
               await _loadSettings();
               if (!context.mounted) return;
               Navigator.pop(context);

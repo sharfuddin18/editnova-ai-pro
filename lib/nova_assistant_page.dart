@@ -3,6 +3,12 @@ import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import 'pages/background_remover_page.dart';
+import 'pages/file_scanner_page.dart';
+import 'pages/image_editor_page.dart';
+import 'pages/qr_generator_page.dart';
+import 'pages/text_translator_page.dart';
+
 class NovaAssistantPage extends StatefulWidget {
   const NovaAssistantPage({super.key});
 
@@ -51,31 +57,79 @@ class _NovaAssistantPageState extends State<NovaAssistantPage>
     await Permission.microphone.request();
   }
 
-  void _listen() async {
-    if (!_isListening) {
-      bool available = await _speech.initialize();
-      if (available) {
+  Future<void> _listen() async {
+    try {
+      if (!_isListening) {
+        final available = await _speech.initialize();
+        if (!available) {
+          _showResponse('Speech recognition is unavailable on this device.');
+          return;
+        }
         setState(() => _isListening = true);
         _animationController.repeat(reverse: true);
-        _speech.listen(
-          onResult: (val) => setState(() {
-            _text = val.recognizedWords;
-            if (val.hasConfidenceRating && val.confidence > 0) {
-              _confidence = val.confidence;
-            }
-          }),
+        await _speech.listen(
+          onResult: (val) {
+            if (!mounted) return;
+            setState(() {
+              _text = val.recognizedWords;
+              if (val.hasConfidenceRating && val.confidence > 0) {
+                _confidence = val.confidence;
+              }
+            });
+          },
         );
+      } else {
+        setState(() => _isListening = false);
+        _animationController.stop();
+        await _speech.stop();
+        await _processCommand(_text);
       }
-    } else {
+    } on Object {
+      if (!mounted) return;
       setState(() => _isListening = false);
       _animationController.stop();
-      _speech.stop();
-      _processCommand(_text);
+      _showResponse('Voice input could not be started. Check microphone permissions.');
     }
   }
 
-  void _processCommand(String command) {
-    String response = _generateResponse(command.toLowerCase());
+  Future<void> _processCommand(String command) async {
+    final normalized = command.trim().toLowerCase();
+    if (normalized.isEmpty) {
+      _showResponse('I did not hear a command. Please try again.');
+      return;
+    }
+    String response;
+    if (normalized.contains('background') || normalized.contains('remove')) {
+      response = 'Opening the background remover.';
+      await _openTool(const BackgroundRemoverPage());
+    } else if (normalized.contains('scan') || normalized.contains('file')) {
+      response = 'Opening the file scanner.';
+      await _openTool(const FileScannerPage());
+    } else if (normalized.contains('qr')) {
+      response = 'Opening the QR generator.';
+      await _openTool(const QRGeneratorPage());
+    } else if (normalized.contains('translat')) {
+      response = 'Opening the translator.';
+      await _openTool(const TextTranslatorPage());
+    } else if (normalized.contains('edit') || normalized.contains('image')) {
+      response = 'Opening the image editor.';
+      await _openTool(const ImageEditorPage());
+    } else {
+      response = _generateResponse(normalized);
+    }
+    _showResponse(response);
+  }
+
+  Future<void> _openTool(Widget page) async {
+    if (!mounted) return;
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute(builder: (context) => page),
+    );
+  }
+
+  void _showResponse(String response) {
+    if (!mounted) return;
     setState(() {
       _response = response;
     });
@@ -101,7 +155,11 @@ class _NovaAssistantPageState extends State<NovaAssistantPage>
   }
 
   Future<void> _speak(String text) async {
-    await _flutterTts.speak(text);
+    try {
+      await _flutterTts.speak(text);
+    } on Object {
+      // Speech output is optional; the response remains visible in the UI.
+    }
   }
 
   @override

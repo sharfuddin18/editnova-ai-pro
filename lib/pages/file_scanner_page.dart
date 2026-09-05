@@ -86,28 +86,20 @@ class _FileScannerPageState extends State<FileScannerPage>
                 name: file.name,
                 size: file.size,
                 extension: file.extension ?? 'unknown',
-                isSafe: data['safe'] ?? false,
+                isSafe: data['safe'] as bool?,
                 threats: List<String>.from(data['threats'] ?? []),
                 scanTime: data['scanTime'] ?? 1.0,
                 scanDate: DateTime.now(),
               ));
         });
+      } else {
+        throw Exception('Scan failed with status ${response.statusCode}');
       }
-    } catch (e) {
-      // Fallback for offline mode
-      setState(() {
-        _scannedFiles.insert(
-            0,
-            ScannedFile(
-              name: file.name,
-              size: file.size,
-              extension: file.extension ?? 'unknown',
-              isSafe: true,
-              threats: [],
-              scanTime: 1.2,
-              scanDate: DateTime.now(),
-            ));
-      });
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not scan ${file.name}. Check the backend connection.')),
+      );
     }
   }
 
@@ -308,18 +300,24 @@ class _FileScannerPageState extends State<FileScannerPage>
                                   Container(
                                     padding: EdgeInsets.all(8),
                                     decoration: BoxDecoration(
-                                      color: file.isSafe
-                                          ? Colors.green.withValues(alpha: 0.1)
-                                          : Colors.red.withValues(alpha: 0.1),
+                                        color: file.isSafe == null
+                                          ? Colors.grey.withValues(alpha: 0.1)
+                                          : file.isSafe!
+                                            ? Colors.green.withValues(alpha: 0.1)
+                                            : Colors.red.withValues(alpha: 0.1),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Icon(
-                                      file.isSafe
-                                          ? Icons.verified_user
-                                          : Icons.warning,
-                                      color: file.isSafe
-                                          ? Colors.green
-                                          : Colors.red,
+                                        file.isSafe == null
+                                          ? Icons.help_outline
+                                          : file.isSafe!
+                                            ? Icons.verified_user
+                                            : Icons.warning,
+                                        color: file.isSafe == null
+                                          ? Colors.grey
+                                          : file.isSafe!
+                                            ? Colors.green
+                                            : Colors.red,
                                       size: 24,
                                     ),
                                   ),
@@ -369,13 +367,19 @@ class _FileScannerPageState extends State<FileScannerPage>
                                     crossAxisAlignment: CrossAxisAlignment.end,
                                     children: [
                                       Text(
-                                        file.isSafe ? 'SAFE' : 'THREAT',
+                                        file.isSafe == null
+                                          ? 'NOT SCANNED'
+                                          : file.isSafe!
+                                            ? 'SAFE'
+                                            : 'THREAT',
                                         style: TextStyle(
                                           fontSize: 12,
                                           fontWeight: FontWeight.bold,
-                                          color: file.isSafe
-                                              ? Colors.green
-                                              : Colors.red,
+                                            color: file.isSafe == null
+                                              ? Colors.grey
+                                              : file.isSafe!
+                                                ? Colors.green
+                                                : Colors.red,
                                         ),
                                       ),
                                       Text(
@@ -449,7 +453,7 @@ class ScannedFile {
   final String name;
   final int size;
   final String extension;
-  final bool isSafe;
+  final bool? isSafe;
   final List<String> threats;
   final double scanTime;
   final DateTime scanDate;

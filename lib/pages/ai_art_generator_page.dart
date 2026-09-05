@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
 import 'dart:convert';
+import 'dart:io';
 import '../network/api_config.dart';
 
 class AIArtGeneratorPage extends StatefulWidget {
@@ -16,6 +18,7 @@ class _AIArtGeneratorPageState extends State<AIArtGeneratorPage>
   String _selectedStyle = 'Abstract';
   bool _isGenerating = false;
   String? _generatedArtId;
+  String? _generatedImageUrl;
   late AnimationController _generateController;
   late AnimationController _pulseController;
 
@@ -66,14 +69,17 @@ class _AIArtGeneratorPageState extends State<AIArtGeneratorPage>
       );
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-
-        await Future.delayed(const Duration(seconds: 3));
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final imageUrl = data['imageUrl']?.toString();
+        if (imageUrl == null || imageUrl.isEmpty) {
+          throw const FormatException('The provider returned no artwork.');
+        }
 
         if (!mounted) return;
 
         setState(() {
-          _generatedArtId = data['artId'];
+          _generatedArtId = data['artId']?.toString();
+          _generatedImageUrl = imageUrl;
         });
 
         if (!mounted) return;
@@ -84,6 +90,8 @@ class _AIArtGeneratorPageState extends State<AIArtGeneratorPage>
             backgroundColor: Colors.green,
           ),
         );
+      } else {
+        throw Exception('Artwork request failed: ${response.statusCode}');
       }
     } catch (e) {
       if (!mounted) return;
@@ -391,32 +399,12 @@ class _AIArtGeneratorPageState extends State<AIArtGeneratorPage>
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: Colors.grey.shade300),
                         ),
-                        child: Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.image,
-                                size: 80,
-                                color: Colors.purple.shade300,
-                              ),
-                              SizedBox(height: 12),
-                              Text(
-                                'AI Generated Artwork',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.purple.shade600,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              Text(
-                                '$_selectedStyle Style',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.purple.shade500,
-                                ),
-                              ),
-                            ],
+                        child: Image.network(
+                          _generatedImageUrl!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const Center(
+                            child: Text('Generated artwork could not be loaded.'),
                           ),
                         ),
                       ),
@@ -464,21 +452,41 @@ class _AIArtGeneratorPageState extends State<AIArtGeneratorPage>
     );
   }
 
-  void _saveArtwork() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Artwork saved to gallery!')),
-    );
+  Future<void> _saveArtwork() async {
+    if (_generatedImageUrl == null) return;
+    try {
+      final response = await http.get(Uri.parse(_generatedImageUrl!));
+      if (response.statusCode != 200) {
+        throw Exception('Artwork download failed');
+      }
+      final directory = await getApplicationDocumentsDirectory();
+      final path = '${directory.path}/editnova_art_${DateTime.now().millisecondsSinceEpoch}.png';
+      await File(path).writeAsBytes(response.bodyBytes);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Artwork saved to $path')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not save the artwork.')),
+      );
+    }
   }
 
-  void _shareArtwork() {
+  Future<void> _shareArtwork() async {
+    if (_generatedImageUrl == null) return;
+    await Clipboard.setData(ClipboardData(text: _generatedImageUrl!));
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Artwork shared successfully!')),
+      const SnackBar(content: Text('Artwork link copied to the clipboard.')),
     );
   }
 
   void _regenerateArt() {
     setState(() {
       _generatedArtId = null;
+      _generatedImageUrl = null;
     });
     _generateArt();
   }

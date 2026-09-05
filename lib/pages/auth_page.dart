@@ -7,7 +7,9 @@ import '../network/api_config.dart';
 import '../network/auth_session.dart';
 
 class AuthPage extends StatefulWidget {
-  const AuthPage({super.key});
+  const AuthPage({super.key, this.onAuthenticated});
+
+  final VoidCallback? onAuthenticated;
 
   @override
   State<AuthPage> createState() => _AuthPageState();
@@ -47,7 +49,11 @@ class _AuthPageState extends State<AuthPage> {
       final data = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200) throw Exception(data['message']);
       await AuthSession.save(data['token'].toString(), _username.text.trim());
-      if (mounted) Navigator.pop(context, true);
+      if (widget.onAuthenticated != null) {
+        widget.onAuthenticated!();
+      } else if (mounted) {
+        Navigator.pop(context, true);
+      }
     } catch (_) {
       _notify('Authentication failed. Check your details and backend connection.');
     } finally {

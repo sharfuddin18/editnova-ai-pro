@@ -9,6 +9,7 @@ import 'file_scanner_page.dart';
 import 'settings_page.dart';
 import 'tools_page.dart';
 import '../nova_assistant_page.dart';
+import '../network/project_repository.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -166,8 +167,67 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-class HomeContent extends StatelessWidget {
+class HomeContent extends StatefulWidget {
   const HomeContent({super.key});
+
+  @override
+  State<HomeContent> createState() => _HomeContentState();
+}
+
+class _HomeContentState extends State<HomeContent> {
+  List<EditNovaProject> _projects = [];
+  bool _loadingProjects = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProjects();
+  }
+
+  Future<void> _loadProjects() async {
+    final projects = await ProjectRepository.list();
+    if (!mounted) return;
+    setState(() {
+      _projects = projects;
+      _loadingProjects = false;
+    });
+  }
+
+  Future<void> _createProject() async {
+    final controller = TextEditingController();
+    final name = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Create project'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: const InputDecoration(labelText: 'Project name'),
+          onSubmitted: (value) => Navigator.pop(context, value),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, controller.text),
+            child: const Text('Create'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (name == null) return;
+    await ProjectRepository.create(name);
+    await _loadProjects();
+  }
+
+  Future<void> _deleteProject(EditNovaProject project) async {
+    await ProjectRepository.delete(project.id);
+    await _loadProjects();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -185,6 +245,45 @@ class HomeContent extends StatelessWidget {
             'Your AI-powered editing companion',
             style: Theme.of(context).textTheme.bodyMedium,
           ),
+          SizedBox(height: 24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Projects', style: Theme.of(context).textTheme.headlineMedium),
+              IconButton(
+                onPressed: _createProject,
+                icon: const Icon(Icons.add),
+                tooltip: 'Create project',
+              ),
+            ],
+          ),
+          if (_loadingProjects)
+            const LinearProgressIndicator()
+          else if (_projects.isEmpty)
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.folder_open),
+              title: const Text('No projects yet'),
+              subtitle: const Text('Create a project to keep your work together.'),
+              trailing: FilledButton(
+                onPressed: _createProject,
+                child: const Text('Create'),
+              ),
+            )
+          else
+            ..._projects.take(3).map(
+                  (project) => ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.folder_outlined),
+                    title: Text(project.name),
+                    subtitle: Text('Updated ${project.updatedAt.toLocal()}'),
+                    trailing: IconButton(
+                      onPressed: () => _deleteProject(project),
+                      icon: const Icon(Icons.delete_outline),
+                      tooltip: 'Delete project',
+                    ),
+                  ),
+                ),
           SizedBox(height: 24),
           StatsWidget(),
           SizedBox(height: 24),

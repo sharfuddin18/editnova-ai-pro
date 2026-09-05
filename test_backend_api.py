@@ -131,3 +131,41 @@ def test_binary_upload_and_image_processing_create_downloadable_files(client):
     )
     assert removed.status_code == 200
     assert client.get(f"/api/files/{removed.get_json()['fileId']}", headers=headers).mimetype == "image/png"
+
+
+def test_batch_processing_completes_for_uploaded_image(client):
+    from PIL import Image
+
+    auth = client.post(
+        "/api/signup",
+        json={"username": "batch-user", "email": "batch@example.com", "password": "strongpass123"},
+    )
+    headers = {"Authorization": f"Bearer {auth.get_json()['token']}"}
+    image = Image.new("RGB", (8, 8), (20, 80, 180))
+    stream = BytesIO()
+    image.save(stream, format="PNG")
+    stream.seek(0)
+
+    uploaded = client.post(
+        "/api/upload-image",
+        data={"file": (stream, "batch-source.png")},
+        content_type="multipart/form-data",
+        headers=headers,
+    )
+    assert uploaded.status_code == 200
+    image_id = uploaded.get_json()["imageId"]
+
+    batch = client.post(
+        "/api/batch-process",
+        json={"fileIds": [image_id], "operation": "resize"},
+        headers=headers,
+    )
+    body = batch.get_json()
+    assert batch.status_code == 200
+    assert body["state"] == "completed"
+    assert body["queued"] is False
+    assert len(body["outputs"]) == 1
+
+    job = client.get(f"/api/jobs/{body['jobId']}", headers=headers)
+    assert job.status_code == 200
+    assert job.get_json()["job"]["state"] == "completed"
