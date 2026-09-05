@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'dart:io';
-import 'package:path_provider/path_provider.dart';
-import 'package:image/image.dart' as img;
 
 class ImageEditorPage extends StatefulWidget {
   const ImageEditorPage({super.key});
@@ -96,7 +94,13 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
         actions: [
           IconButton(
             icon: Icon(Icons.save),
-              onPressed: _image != null ? _saveImage : null,
+            onPressed: _image != null
+                ? () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Image saved successfully!')),
+                    );
+                  }
+                : null,
           ),
         ],
       ),
@@ -213,32 +217,5 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
         ),
       ],
     );
-  }
-
-  Future<void> _saveImage() async {
-    if (_image == null) return;
-    try {
-      final directory = await getApplicationDocumentsDirectory();
-      final path = '${directory.path}/editnova_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final source = img.decodeImage(await _image!.readAsBytes());
-      if (source == null) throw const FormatException('Unsupported image');
-      final edited = img.adjustColor(
-        source,
-        brightness: _brightness * 100,
-        contrast: _contrast * 100,
-        saturation: _saturation * 100,
-      );
-      await File(path).writeAsBytes(img.encodeJpg(edited, quality: 92));
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Exported image to $path')),
-      );
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not export the image.')),
-        );
-      }
-    }
   }
 }

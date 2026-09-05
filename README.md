@@ -46,14 +46,6 @@ Setup Backend (Python):
 Bash
 pip install -r requirements.txt
 python app.py
-
-For a physical device or emulator, configure the backend address when starting
-Flutter:
-
-	flutter run --dart-define=EDITNOVA_API_URL=http://YOUR_MACHINE_IP:5001
-
-The default URL is http://localhost:5001 for local desktop development. Verify
-the service with GET /api/health before using network-powered features.
 📂 Asset Management
 The project utilizes a specific directory structure for branding:
 
