@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 
 class FileScannerPage extends StatefulWidget {
   const FileScannerPage({super.key});
@@ -10,32 +8,8 @@ class FileScannerPage extends StatefulWidget {
   State<FileScannerPage> createState() => _FileScannerPageState();
 }
 
-class _FileScannerPageState extends State<FileScannerPage>
-    with TickerProviderStateMixin {
+class _FileScannerPageState extends State<FileScannerPage> {
   final List<ScannedFile> _scannedFiles = [];
-  bool _isScanning = false;
-  late AnimationController _scanAnimationController;
-  late AnimationController _pulseController;
-
-  @override
-  void initState() {
-    super.initState();
-    _scanAnimationController = AnimationController(
-      duration: Duration(seconds: 2),
-      vsync: this,
-    );
-    _pulseController = AnimationController(
-      duration: Duration(milliseconds: 1500),
-      vsync: this,
-    );
-  }
-
-  @override
-  void dispose() {
-    _scanAnimationController.dispose();
-    _pulseController.dispose();
-    super.dispose();
-  }
 
   Future<void> _pickAndScanFile() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
@@ -43,72 +17,24 @@ class _FileScannerPageState extends State<FileScannerPage>
       type: FileType.any,
     );
 
-    if (result != null) {
-      setState(() {
-        _isScanning = true;
-      });
+    if (result == null || !mounted) return;
 
-      _scanAnimationController.repeat();
-      _pulseController.repeat(reverse: true);
-
-      for (PlatformFile file in result.files) {
-        await _scanSingleFile(file);
-        await Future.delayed(Duration(milliseconds: 800)); // Simulate scan time
-      }
-
-      setState(() {
-        _isScanning = false;
-      });
-
-      _scanAnimationController.stop();
-      _pulseController.stop();
-    }
-  }
-
-  Future<void> _scanSingleFile(PlatformFile file) async {
-    try {
-      final response = await http.post(
-        Uri.parse('http://localhost:5001/api/scan-file'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'filename': file.name,
-          'size': file.size,
-          'extension': file.extension ?? 'unknown'
-        }),
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        setState(() {
-          _scannedFiles.insert(
-              0,
-              ScannedFile(
-                name: file.name,
-                size: file.size,
-                extension: file.extension ?? 'unknown',
-                isSafe: data['safe'] ?? true,
-                threats: List<String>.from(data['threats'] ?? []),
-                scanTime: data['scanTime'] ?? 1.0,
-                scanDate: DateTime.now(),
-              ));
-        });
-      }
-    } catch (e) {
-      // Fallback for offline mode
-      setState(() {
+    setState(() {
+      for (final file in result.files) {
         _scannedFiles.insert(
-            0,
-            ScannedFile(
-              name: file.name,
-              size: file.size,
-              extension: file.extension ?? 'unknown',
-              isSafe: true,
-              threats: [],
-              scanTime: 1.2,
-              scanDate: DateTime.now(),
-            ));
-      });
-    }
+          0,
+          ScannedFile(
+            name: file.name,
+            size: file.size,
+            extension: file.extension ?? 'unknown',
+            isSafe: null,
+            threats: [],
+            scanTime: null,
+            scanDate: DateTime.now(),
+          ),
+        );
+      }
+    });
   }
 
   void _clearHistory() {
@@ -122,7 +48,7 @@ class _FileScannerPageState extends State<FileScannerPage>
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'File Scanner Pro',
+          'File Scanner',
           style: TextStyle(
             fontFamily: 'Montserrat',
             fontWeight: FontWeight.bold,
@@ -152,57 +78,22 @@ class _FileScannerPageState extends State<FileScannerPage>
             ),
             child: Column(
               children: [
-                AnimatedBuilder(
-                  animation: _pulseController,
-                  builder: (context, child) {
-                    return Transform.scale(
-                      scale: _isScanning
-                          ? 1.0 + (_pulseController.value * 0.1)
-                          : 1.0,
-                      child: Container(
-                        width: 120,
-                        height: 120,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.2),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.3),
-                            width: 2,
-                          ),
-                        ),
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            if (_isScanning)
-                              AnimatedBuilder(
-                                animation: _scanAnimationController,
-                                builder: (context, child) {
-                                  return Transform.rotate(
-                                    angle:
-                                        _scanAnimationController.value * 6.28,
-                                    child: Icon(
-                                      Icons.radar,
-                                      size: 50,
-                                      color: Colors.white,
-                                    ),
-                                  );
-                                },
-                              ),
-                            if (!_isScanning)
-                              Icon(
-                                Icons.security,
-                                size: 50,
-                                color: Colors.white,
-                              ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
+                Container(
+                  width: 120,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.3),
+                      width: 2,
+                    ),
+                  ),
+                  child: Icon(Icons.gpp_maybe, size: 50, color: Colors.white),
                 ),
                 SizedBox(height: 16),
                 Text(
-                  _isScanning ? 'Scanning Files...' : 'Ready to Scan',
+                  'Security Scan Unavailable',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -212,9 +103,7 @@ class _FileScannerPageState extends State<FileScannerPage>
                 ),
                 SizedBox(height: 8),
                 Text(
-                  _isScanning
-                      ? 'Analyzing for threats and malware'
-                      : 'Tap below to select files for security scan',
+                  'No scanning service is configured. Selected file contents are not analyzed.',
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.white70,
@@ -233,11 +122,10 @@ class _FileScannerPageState extends State<FileScannerPage>
               width: double.infinity,
               height: 56,
               child: ElevatedButton.icon(
-                onPressed: _isScanning ? null : _pickAndScanFile,
-                icon: Icon(
-                    _isScanning ? Icons.hourglass_empty : Icons.file_upload),
+                onPressed: _pickAndScanFile,
+                icon: Icon(Icons.file_upload),
                 label: Text(
-                  _isScanning ? 'Scanning...' : 'Select Files to Scan',
+                  'Select Files',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -245,7 +133,7 @@ class _FileScannerPageState extends State<FileScannerPage>
                   ),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _isScanning ? Colors.grey : Colors.indigo,
+                  backgroundColor: Colors.indigo,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
@@ -262,14 +150,10 @@ class _FileScannerPageState extends State<FileScannerPage>
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
-                          Icons.folder_open,
-                          size: 64,
-                          color: Colors.grey,
-                        ),
+                        Icon(Icons.folder_open, size: 64, color: Colors.grey),
                         SizedBox(height: 16),
                         Text(
-                          'No files scanned yet',
+                          'No files selected',
                           style: TextStyle(
                             fontSize: 18,
                             color: Colors.grey,
@@ -278,7 +162,7 @@ class _FileScannerPageState extends State<FileScannerPage>
                         ),
                         SizedBox(height: 8),
                         Text(
-                          'Select files to start security scanning',
+                          'Selected files will be marked unverified because no scan service is available.',
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.grey.shade600,
@@ -308,16 +192,22 @@ class _FileScannerPageState extends State<FileScannerPage>
                                   Container(
                                     padding: EdgeInsets.all(8),
                                     decoration: BoxDecoration(
-                                      color: file.isSafe
+                                      color: file.isSafe == null
+                                          ? Colors.amber.withValues(alpha: 0.1)
+                                          : file.isSafe!
                                           ? Colors.green.withValues(alpha: 0.1)
                                           : Colors.red.withValues(alpha: 0.1),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Icon(
-                                      file.isSafe
+                                      file.isSafe == null
+                                          ? Icons.help_outline
+                                          : file.isSafe!
                                           ? Icons.verified_user
                                           : Icons.warning,
-                                      color: file.isSafe
+                                      color: file.isSafe == null
+                                          ? Colors.amber
+                                          : file.isSafe!
                                           ? Colors.green
                                           : Colors.red,
                                       size: 24,
@@ -349,9 +239,12 @@ class _FileScannerPageState extends State<FileScannerPage>
                                                 color: Colors.grey.shade600,
                                               ),
                                             ),
-                                            Text(' • ',
-                                                style: TextStyle(
-                                                    color: Colors.grey)),
+                                            Text(
+                                              ' • ',
+                                              style: TextStyle(
+                                                color: Colors.grey,
+                                              ),
+                                            ),
                                             Text(
                                               file.extension.toUpperCase(),
                                               style: TextStyle(
@@ -369,17 +262,25 @@ class _FileScannerPageState extends State<FileScannerPage>
                                     crossAxisAlignment: CrossAxisAlignment.end,
                                     children: [
                                       Text(
-                                        file.isSafe ? 'SAFE' : 'THREAT',
+                                        file.isSafe == null
+                                            ? 'UNVERIFIED'
+                                            : file.isSafe!
+                                            ? 'SAFE'
+                                            : 'THREAT',
                                         style: TextStyle(
                                           fontSize: 12,
                                           fontWeight: FontWeight.bold,
-                                          color: file.isSafe
+                                          color: file.isSafe == null
+                                              ? Colors.amber
+                                              : file.isSafe!
                                               ? Colors.green
                                               : Colors.red,
                                         ),
                                       ),
                                       Text(
-                                        '${file.scanTime.toStringAsFixed(1)}s',
+                                        file.scanTime == null
+                                            ? 'No verdict'
+                                            : '${file.scanTime!.toStringAsFixed(1)}s',
                                         style: TextStyle(
                                           fontSize: 10,
                                           color: Colors.grey,
@@ -414,13 +315,15 @@ class _FileScannerPageState extends State<FileScannerPage>
                                         ),
                                       ),
                                       SizedBox(height: 4),
-                                      ...file.threats.map((threat) => Text(
-                                            '• $threat',
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              color: Colors.red.shade700,
-                                            ),
-                                          )),
+                                      ...file.threats.map(
+                                        (threat) => Text(
+                                          '• $threat',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.red.shade700,
+                                          ),
+                                        ),
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -449,9 +352,9 @@ class ScannedFile {
   final String name;
   final int size;
   final String extension;
-  final bool isSafe;
+  final bool? isSafe;
   final List<String> threats;
-  final double scanTime;
+  final double? scanTime;
   final DateTime scanDate;
 
   ScannedFile({

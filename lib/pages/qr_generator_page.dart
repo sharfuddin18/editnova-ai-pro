@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+
 import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:file_picker/file_picker.dart';
+
+import '../network/api_config.dart';
 
 class QRGeneratorPage extends StatefulWidget {
   const QRGeneratorPage({super.key});
@@ -12,7 +18,7 @@ class QRGeneratorPage extends StatefulWidget {
 class _QRGeneratorPageState extends State<QRGeneratorPage> {
   final TextEditingController _textController = TextEditingController();
   String _selectedType = 'URL';
-  String? _generatedQRId;
+  Uint8List? _generatedQRBytes;
   bool _isGenerating = false;
 
   final List<QRType> _qrTypes = [
@@ -26,9 +32,8 @@ class _QRGeneratorPageState extends State<QRGeneratorPage> {
 
   Future<void> _generateQR() async {
     if (_textController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please enter some content')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Please enter some content')));
       return;
     }
 
@@ -38,7 +43,7 @@ class _QRGeneratorPageState extends State<QRGeneratorPage> {
 
     try {
       final response = await http.post(
-        Uri.parse('http://localhost:5001/api/generate-qr'),
+        apiUri('generate-qr'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'text': _textController.text,
@@ -46,23 +51,30 @@ class _QRGeneratorPageState extends State<QRGeneratorPage> {
         }),
       );
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (!mounted) return;
-        setState(() {
-          _generatedQRId = data['qrId'];
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('QR code generated successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
+      final data = jsonDecode(response.body);
+      if (response.statusCode != 200) {
+        final message = data is Map<String, dynamic> ? data['message'] : null;
+        throw Exception(message is String ? message : 'QR generation failed.');
       }
+      final encodedImage = data is Map<String, dynamic>
+          ? data['imageData']
+          : null;
+      if (encodedImage is! String) {
+        throw const FormatException('The QR service returned no image.');
+      }
+      final imageBytes = base64Decode(encodedImage);
+      if (!mounted) return;
+      setState(() => _generatedQRBytes = imageBytes);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('QR code generated.')));
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to generate QR code')),
+        SnackBar(
+          content: Text(
+            'Unable to generate QR code: ${e.toString().replaceFirst('Exception: ', '')}',
+          ),
+        ),
       );
     } finally {
       if (mounted) {
@@ -73,16 +85,37 @@ class _QRGeneratorPageState extends State<QRGeneratorPage> {
     }
   }
 
-  void _shareQR() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('QR code sharing feature coming soon!')),
-    );
+  Future<void> _saveQR() async {
+    final bytes = _generatedQRBytes;
+    if (bytes == null) return;
+    try {
+      final path = await FilePicker.platform.saveFile(
+        dialogTitle: 'Save QR code',
+        fileName: 'editnova-qr.png',
+        bytes: bytes,
+      );
+      if (!mounted || (path == null && !kIsWeb)) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            path == null
+                ? 'QR code download started.'
+                : 'QR code saved to $path',
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Unable to save QR code: $error')));
+    }
   }
 
-  void _downloadQR() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('QR code downloaded to gallery!')),
-    );
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
   }
 
   @override
@@ -91,16 +124,12 @@ class _QRGeneratorPageState extends State<QRGeneratorPage> {
       appBar: AppBar(
         title: Text(
           'QR Code Generator',
-          style:
-              TextStyle(fontFamily: 'Montserrat', fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontFamily: 'Montserrat',
+            fontWeight: FontWeight.bold,
+          ),
         ),
         backgroundColor: Colors.indigo,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.history),
-            onPressed: () => _showQRHistory(),
-          ),
-        ],
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(16),
@@ -126,17 +155,19 @@ class _QRGeneratorPageState extends State<QRGeneratorPage> {
                       spacing: 8,
                       runSpacing: 8,
                       children: _qrTypes
-                          .map((type) => ChoiceChip(
-                                avatar: Icon(type.icon, size: 18),
-                                label: Text(type.name),
-                                selected: _selectedType == type.name,
-                                onSelected: (selected) {
-                                  if (selected) {
-                                    setState(() => _selectedType = type.name);
-                                    _textController.clear();
-                                  }
-                                },
-                              ))
+                          .map(
+                            (type) => ChoiceChip(
+                              avatar: Icon(type.icon, size: 18),
+                              label: Text(type.name),
+                              selected: _selectedType == type.name,
+                              onSelected: (selected) {
+                                if (selected) {
+                                  setState(() => _selectedType = type.name);
+                                  _textController.clear();
+                                }
+                              },
+                            ),
+                          )
                           .toList(),
                     ),
                   ],
@@ -184,13 +215,14 @@ class _QRGeneratorPageState extends State<QRGeneratorPage> {
                             ? SizedBox(
                                 width: 16,
                                 height: 16,
-                                child:
-                                    CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               )
                             : Icon(Icons.qr_code),
-                        label: Text(_isGenerating
-                            ? 'Generating...'
-                            : 'Generate QR Code'),
+                        label: Text(
+                          _isGenerating ? 'Generating...' : 'Generate QR Code',
+                        ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.indigo,
                           foregroundColor: Colors.white,
@@ -209,7 +241,7 @@ class _QRGeneratorPageState extends State<QRGeneratorPage> {
             SizedBox(height: 16),
 
             // Generated QR Code Display
-            if (_generatedQRId != null) ...[
+            if (_generatedQRBytes != null) ...[
               Card(
                 child: Padding(
                   padding: EdgeInsets.all(16),
@@ -223,58 +255,17 @@ class _QRGeneratorPageState extends State<QRGeneratorPage> {
                         ),
                       ),
                       SizedBox(height: 16),
-                      Container(
+                      Image.memory(
+                        _generatedQRBytes!,
                         width: 200,
                         height: 200,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border.all(color: Colors.grey.shade300),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.qr_code,
-                                size: 120,
-                                color: Colors.black87,
-                              ),
-                              SizedBox(height: 8),
-                              Text(
-                                'QR Code',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                        fit: BoxFit.contain,
                       ),
                       SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          ElevatedButton.icon(
-                            onPressed: _shareQR,
-                            icon: Icon(Icons.share),
-                            label: Text('Share'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
-                              foregroundColor: Colors.white,
-                            ),
-                          ),
-                          ElevatedButton.icon(
-                            onPressed: _downloadQR,
-                            icon: Icon(Icons.download),
-                            label: Text('Download'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue,
-                              foregroundColor: Colors.white,
-                            ),
-                          ),
-                        ],
+                      ElevatedButton.icon(
+                        onPressed: _saveQR,
+                        icon: Icon(Icons.download),
+                        label: Text('Save QR Code'),
                       ),
                     ],
                   ),
@@ -337,64 +328,12 @@ class _QRGeneratorPageState extends State<QRGeneratorPage> {
       case 'Phone':
         return '+1234567890';
       case 'WiFi':
-        return 'Network name and password';
+        return 'Network name|password';
       case 'SMS':
-        return 'Phone number and message';
+        return 'Phone number|message';
       default:
         return 'Enter content here...';
     }
-  }
-
-  void _showQRHistory() {
-    showModalBottomSheet(
-      context: context,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => Container(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'QR Code History',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            SizedBox(height: 16),
-            ListTile(
-              leading: Icon(Icons.link, color: Colors.blue),
-              title: Text('https://flutter.dev'),
-              subtitle: Text('URL • Created today'),
-              trailing: IconButton(
-                icon: Icon(Icons.more_vert),
-                onPressed: () {},
-              ),
-            ),
-            ListTile(
-              leading: Icon(Icons.text_fields, color: Colors.green),
-              title: Text('Welcome to EditNova!'),
-              subtitle: Text('Text • Created yesterday'),
-              trailing: IconButton(
-                icon: Icon(Icons.more_vert),
-                onPressed: () {},
-              ),
-            ),
-            ListTile(
-              leading: Icon(Icons.email, color: Colors.orange),
-              title: Text('support@editnova.com'),
-              subtitle: Text('Email • Created 3 days ago'),
-              trailing: IconButton(
-                icon: Icon(Icons.more_vert),
-                onPressed: () {},
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }
 

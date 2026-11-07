@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
+
 import '../widgets/feature_card.dart';
 import '../widgets/stats_widget.dart';
 import 'image_editor_page.dart';
 import 'background_remover_page.dart';
 import 'file_scanner_page.dart';
 import '../nova_assistant_page.dart';
+import 'tools_page.dart';
+import 'settings_page.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  const HomePage({super.key, this.onDarkModeChanged});
+
+  final ValueChanged<bool>? onDarkModeChanged;
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -20,15 +25,16 @@ class _HomePageState extends State<HomePage> {
   bool _isAdLoaded = false;
   int _selectedIndex = 0;
 
-  final List<Widget> _pages = [
-    HomeContent(),
-    Center(child: Text('Tools', style: TextStyle(fontSize: 24))),
-    Center(child: Text('Settings', style: TextStyle(fontSize: 24))),
-  ];
+  late final List<Widget> _pages;
 
   @override
   void initState() {
     super.initState();
+    _pages = [
+      const HomeContent(),
+      const ToolsPage(),
+      SettingsPage(onDarkModeChanged: widget.onDarkModeChanged),
+    ];
     _loadBannerAd();
   }
 
@@ -53,19 +59,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('EditNova'),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.notifications),
-            onPressed: () {},
-          ),
-          IconButton(
-            icon: Icon(Icons.account_circle),
-            onPressed: () {},
-          ),
-        ],
-      ),
+      appBar: AppBar(title: Text('EditNova')),
       body: _pages[_selectedIndex],
       bottomNavigationBar: Column(
         mainAxisSize: MainAxisSize.min,
@@ -79,14 +73,8 @@ class _HomePageState extends State<HomePage> {
             currentIndex: _selectedIndex,
             onTap: (index) => setState(() => _selectedIndex = index),
             items: [
-              BottomNavigationBarItem(
-                icon: Icon(Icons.home),
-                label: 'Home',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.build),
-                label: 'Tools',
-              ),
+              BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+              BottomNavigationBarItem(icon: Icon(Icons.build), label: 'Tools'),
               BottomNavigationBarItem(
                 icon: Icon(Icons.settings),
                 label: 'Settings',
@@ -121,15 +109,13 @@ class _HomePageState extends State<HomePage> {
           ),
           SpeedDialChild(
             child: Icon(Icons.auto_awesome),
-            label: 'Advanced Commands',
-            onTap: () async {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const NovaAssistantPage(),
-                ),
-              );
-            },
+            label: 'Voice Assistant',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const NovaAssistantPage(),
+              ),
+            ),
           ),
         ],
       ),
@@ -153,16 +139,13 @@ class HomeContent extends StatelessWidget {
           ),
           SizedBox(height: 8),
           Text(
-            'Your AI-powered editing companion',
+            'Image editing, file tools, and voice controls',
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           SizedBox(height: 24),
           StatsWidget(),
           SizedBox(height: 24),
-          Text(
-            'Features',
-            style: Theme.of(context).textTheme.headlineMedium,
-          ),
+          Text('Features', style: Theme.of(context).textTheme.headlineMedium),
           SizedBox(height: 16),
           GridView.count(
             crossAxisCount: 2,
@@ -174,26 +157,27 @@ class HomeContent extends StatelessWidget {
               FeatureCard(
                 title: 'Image Editor',
                 icon: Icons.photo_filter,
-                description: 'Advanced AI image editing',
+                description: 'Adjust brightness, contrast, and saturation',
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => ImageEditorPage()),
                 ),
               ),
               FeatureCard(
-                title: 'Background Remover',
+                title: 'Flat Background Remover',
                 icon: Icons.layers_clear,
-                description: 'Remove backgrounds instantly',
+                description: 'Remove flat, edge-connected backgrounds locally',
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (context) => BackgroundRemoverPage()),
+                    builder: (context) => BackgroundRemoverPage(),
+                  ),
                 ),
               ),
               FeatureCard(
                 title: 'File Scanner',
                 icon: Icons.scanner,
-                description: 'Scan and organize files',
+                description: 'File contents are not scanned for threats',
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => FileScannerPage()),
@@ -202,7 +186,7 @@ class HomeContent extends StatelessWidget {
               FeatureCard(
                 title: 'Nova Assistant',
                 icon: Icons.assistant,
-                description: 'AI voice assistant',
+                description: 'Speech input with local keyword responses',
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => NovaAssistantPage()),
