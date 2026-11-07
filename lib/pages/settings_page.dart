@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:http/http.dart' as http;
+
 import 'dart:convert';
 
+import 'package:http/http.dart' as http;
+
+import '../network/api_config.dart';
+
 class SettingsPage extends StatefulWidget {
-  const SettingsPage({super.key});
+  const SettingsPage({super.key, this.onDarkModeChanged});
+
+  final ValueChanged<bool>? onDarkModeChanged;
 
   @override
   State<SettingsPage> createState() => _SettingsPageState();
@@ -30,6 +36,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
     setState(() {
       _darkMode = prefs.getBool('darkMode') ?? false;
       _notifications = prefs.getBool('notifications') ?? true;
@@ -59,25 +66,8 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _toggleFeature(String feature, bool enabled) async {
-    try {
-      final response = await http.post(
-        Uri.parse('http://localhost:5001/api/toggle-feature'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'feature': feature, 'enabled': enabled}),
-      );
-
-      if (response.statusCode == 200 && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Settings updated successfully'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      // Continue with local storage even if API fails
-    }
     await _saveSettings();
+    if (feature == 'dark_mode') widget.onDarkModeChanged?.call(enabled);
   }
 
   void _showUpgradeDialog() {
@@ -92,40 +82,8 @@ class _SettingsPageState extends State<SettingsPage> {
               Text('Upgrade to Premium'),
             ],
           ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Unlock premium features:'),
-              SizedBox(height: 12),
-              _buildPremiumFeature('Unlimited AI art generation'),
-              _buildPremiumFeature('Batch processing'),
-              _buildPremiumFeature('Cloud synchronization'),
-              _buildPremiumFeature('Advanced filters & effects'),
-              _buildPremiumFeature('Priority customer support'),
-              _buildPremiumFeature('No advertisements'),
-              SizedBox(height: 16),
-              Container(
-                padding: EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.amber.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.flash_on, color: Colors.amber),
-                    SizedBox(width: 8),
-                    Text(
-                      'Special offer: 50% off first month!',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.amber.shade700,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          content: const Text(
+            'Premium purchases are unavailable because no payment provider is configured. No purchase will be made.',
           ),
           actions: [
             TextButton(
@@ -150,28 +108,19 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  Widget _buildPremiumFeature(String text) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        children: [
-          Icon(Icons.check_circle, color: Colors.green, size: 16),
-          SizedBox(width: 8),
-          Expanded(child: Text(text, style: TextStyle(fontSize: 14))),
-        ],
-      ),
-    );
-  }
-
   Future<void> _upgradeToPremium() async {
     try {
       final response = await http.post(
-        Uri.parse('http://localhost:5001/api/upgrade-premium'),
+        apiUri('upgrade-premium'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'plan': 'monthly'}),
       );
 
-      if (response.statusCode == 200 && mounted) {
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200 &&
+          data is Map<String, dynamic> &&
+          data['status'] == 'success' &&
+          mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Welcome to EditNova Premium! 🎉'),
@@ -179,13 +128,27 @@ class _SettingsPageState extends State<SettingsPage> {
             duration: Duration(seconds: 3),
           ),
         );
+      } else if (mounted) {
+        final message = data is Map<String, dynamic> ? data['message'] : null;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              message is String
+                  ? message
+                  : 'Premium upgrades are unavailable. No purchase was made.',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Upgrade successful! Premium features unlocked.'),
-          backgroundColor: Colors.green,
+          content: Text(
+            'Could not contact the upgrade service. No purchase was made.',
+          ),
+          backgroundColor: Colors.red,
         ),
       );
     }
@@ -217,38 +180,14 @@ class _SettingsPageState extends State<SettingsPage> {
                     backgroundColor: Colors.teal,
                     child: Icon(Icons.person, color: Colors.white),
                   ),
-                  title: Text(
-                    'NovaUser',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: Text('user@editnova.com'),
-                  trailing: Icon(Icons.edit),
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Profile editing coming soon!')),
-                    );
-                  },
+                  title: Text('Local profile'),
+                  subtitle: Text('Sign-in is not configured'),
                 ),
                 Divider(height: 1),
                 ListTile(
                   leading: Icon(Icons.star, color: Colors.amber),
                   title: Text('Upgrade to Premium'),
-                  subtitle: Text('Unlock all features & remove ads'),
-                  trailing: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.amber,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      '50% OFF',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
+                  subtitle: Text('Purchases are currently unavailable'),
                   onTap: _showUpgradeDialog,
                 ),
               ],
@@ -276,34 +215,29 @@ class _SettingsPageState extends State<SettingsPage> {
                 SwitchListTile(
                   secondary: Icon(Icons.notifications),
                   title: Text('Notifications'),
-                  subtitle: Text('Receive app notifications'),
+                  subtitle: Text(
+                    'Unavailable: notification delivery is not implemented',
+                  ),
                   value: _notifications,
-                  onChanged: (value) {
-                    setState(() => _notifications = value);
-                    _toggleFeature('notifications', value);
-                  },
+                  onChanged: null,
                 ),
                 Divider(height: 1),
                 SwitchListTile(
                   secondary: Icon(Icons.save),
                   title: Text('Auto Save'),
-                  subtitle: Text('Automatically save edited images'),
+                  subtitle: Text('Automatic export is not implemented'),
                   value: _autoSave,
-                  onChanged: (value) {
-                    setState(() => _autoSave = value);
-                    _toggleFeature('auto_save', value);
-                  },
+                  onChanged: null,
                 ),
                 Divider(height: 1),
                 SwitchListTile(
                   secondary: Icon(Icons.cloud_sync),
                   title: Text('Cloud Sync'),
-                  subtitle: Text('Sync data across devices (Premium)'),
+                  subtitle: Text(
+                    'Unavailable: no cloud-sync service is configured',
+                  ),
                   value: _cloudSync,
-                  onChanged: (value) {
-                    setState(() => _cloudSync = value);
-                    _toggleFeature('cloud_sync', value);
-                  },
+                  onChanged: null,
                 ),
               ],
             ),
@@ -319,26 +253,24 @@ class _SettingsPageState extends State<SettingsPage> {
                 ListTile(
                   leading: Icon(Icons.high_quality),
                   title: Text('Quality Mode'),
-                  subtitle: Text(_qualityMode),
-                  trailing: Icon(Icons.arrow_forward_ios, size: 16),
-                  onTap: () => _showQualityDialog(),
+                  subtitle: Text('$_qualityMode (not used by current tools)'),
+                  trailing: const Icon(Icons.info_outline, size: 16),
                 ),
                 Divider(height: 1),
                 SwitchListTile(
                   secondary: Icon(Icons.auto_awesome),
                   title: Text('AI Enhancement'),
-                  subtitle: Text('Enable AI-powered improvements'),
+                  subtitle: Text(
+                    'Unavailable: no AI enhancement provider is configured',
+                  ),
                   value: _aiEnhancement,
-                  onChanged: (value) {
-                    setState(() => _aiEnhancement = value);
-                    _toggleFeature('ai_enhancement', value);
-                  },
+                  onChanged: null,
                 ),
                 Divider(height: 1),
                 ListTile(
                   leading: Icon(Icons.speed),
                   title: Text('Processing Speed'),
-                  subtitle: Text('${(_processingSpeed * 100).round()}% speed'),
+                  subtitle: Text('Not used by current image operations'),
                   trailing: SizedBox(
                     width: 100,
                     child: Slider(
@@ -346,12 +278,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       min: 0.5,
                       max: 2.0,
                       divisions: 3,
-                      onChanged: (value) {
-                        setState(() => _processingSpeed = value);
-                      },
-                      onChangeEnd: (value) {
-                        _toggleFeature('processing_speed', value > 1.0);
-                      },
+                      onChanged: null,
                     ),
                   ),
                 ),
@@ -380,9 +307,8 @@ class _SettingsPageState extends State<SettingsPage> {
                 ListTile(
                   leading: Icon(Icons.language),
                   title: Text('Language'),
-                  subtitle: Text(_language),
-                  trailing: Icon(Icons.arrow_forward_ios, size: 16),
-                  onTap: () => _showLanguageDialog(),
+                  subtitle: Text('$_language (app interface remains English)'),
+                  trailing: const Icon(Icons.info_outline, size: 16),
                 ),
               ],
             ),
@@ -398,23 +324,13 @@ class _SettingsPageState extends State<SettingsPage> {
                 ListTile(
                   leading: Icon(Icons.help_outline),
                   title: Text('Help & FAQ'),
-                  trailing: Icon(Icons.arrow_forward_ios, size: 16),
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Help center coming soon!')),
-                    );
-                  },
+                  subtitle: Text('Help content is not available in this build'),
                 ),
                 Divider(height: 1),
                 ListTile(
                   leading: Icon(Icons.bug_report),
                   title: Text('Report Bug'),
-                  trailing: Icon(Icons.arrow_forward_ios, size: 16),
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Bug reporting coming soon!')),
-                    );
-                  },
+                  subtitle: Text('No bug-reporting service is configured'),
                 ),
                 Divider(height: 1),
                 ListTile(
@@ -428,12 +344,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 ListTile(
                   leading: Icon(Icons.privacy_tip),
                   title: Text('Privacy Policy'),
-                  trailing: Icon(Icons.arrow_forward_ios, size: 16),
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Privacy policy coming soon!')),
-                    );
-                  },
+                  subtitle: Text('A privacy policy has not been provided'),
                 ),
               ],
             ),
@@ -473,63 +384,6 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  void _showQualityDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Quality Mode'),
-        content: RadioGroup<String>(
-          groupValue: _qualityMode,
-          onChanged: (value) {
-            if (value == null) return;
-            setState(() => _qualityMode = value);
-            Navigator.pop(context);
-            _toggleFeature(
-              'quality_mode',
-              value == 'High' || value == 'Ultra',
-            );
-          },
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: ['Low', 'Medium', 'High', 'Ultra']
-                .map((quality) => RadioListTile<String>(
-                      title: Text(quality),
-                      value: quality,
-                    ))
-                .toList(),
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showLanguageDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Select Language'),
-        content: RadioGroup<String>(
-          groupValue: _language,
-          onChanged: (value) {
-            if (value == null) return;
-            setState(() => _language = value);
-            Navigator.pop(context);
-            _toggleFeature('language', value != 'English');
-          },
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: ['English', 'Spanish', 'French', 'German', 'Italian']
-                .map((lang) => RadioListTile<String>(
-                      title: Text(lang),
-                      value: lang,
-                    ))
-                .toList(),
-          ),
-        ),
-      ),
-    );
-  }
-
   void _showAboutDialog() {
     showDialog(
       context: context,
@@ -546,15 +400,14 @@ class _SettingsPageState extends State<SettingsPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'EditNova - AI-Powered Editing Suite',
+              'EditNova - image editing and utility tools',
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 8),
             Text('Version: 1.0.0'),
-            Text('Build: 2025.03.001'),
             SizedBox(height: 12),
             Text(
-              'Transform your images with the power of AI. EditNova provides professional-grade editing tools, background removal, file scanning, and much more.',
+              'EditNova currently supports local image adjustments, flat-color background removal, on-device OCR and translation, poster design, batch image resize and conversion, and QR generation. AI generation, security scanning, payments, and analytics require integrations that are not configured in this build.',
             ),
             SizedBox(height: 12),
             Text(
@@ -579,7 +432,8 @@ class _SettingsPageState extends State<SettingsPage> {
       builder: (context) => AlertDialog(
         title: Text('Reset All Settings'),
         content: Text(
-            'Are you sure you want to reset all settings to default? This action cannot be undone.'),
+          'Are you sure you want to reset all settings to default? This action cannot be undone.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -591,6 +445,7 @@ class _SettingsPageState extends State<SettingsPage> {
               await prefs.clear();
               await _loadSettings();
               if (!context.mounted) return;
+              widget.onDarkModeChanged?.call(false);
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('Settings reset to default')),

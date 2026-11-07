@@ -1,2 +1,4 @@
 flask
 flask-cors
+python-dotenv
+qrcode[pil]>=7.4,<8.0

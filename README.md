@@ -4,7 +4,7 @@ EditNova AI Pro is an advanced, AI-driven editing suite designed for seamless me
 🚀 Project Status
 Core Architecture: Flutter-based mobile frontend with Python/Flask backend.
 
-AI Integration: Voice-to-text, Text-to-speech, and generative AI features are implemented.
+AI Integration: Speech recognition and speech output use platform plugins. Nova currently responds with local keyword rules; no generative AI provider is configured.
 
 UI/UX: Custom Montserrat typography system and animation assets integrated.
 
@@ -46,6 +46,8 @@ Setup Backend (Python):
 Bash
 pip install -r requirements.txt
 python app.py
+
+The Flutter app uses `http://10.0.2.2:5001` for the backend from an Android emulator and `http://localhost:5001` on web and desktop. For a physical device on a trusted local network, start Flask with `FLASK_HOST=0.0.0.0` and set `EDITNOVA_API_BASE_URL` to the development machine's LAN address when building. For deployment, use an HTTPS backend origin, for example `--dart-define=EDITNOVA_API_BASE_URL=https://api.example.com`. Cleartext HTTP is enabled only in Android debug builds.
 📂 Asset Management
 The project utilizes a specific directory structure for branding:
 
@@ -58,11 +60,13 @@ Troubleshooting Assets: If you encounter Failed to load font errors, ensure your
 📡 API Endpoints
 The backend provides the following interfaces:
 
-GET /api/usage: Retrieve current AI token usage.
+GET /api/usage: Returns an unavailable response until an analytics data source is configured.
 
-POST /api/toggle-feature: Toggle specific AI editing capabilities.
+POST /api/toggle-feature: Returns an unavailable response for server-side settings; app preferences are stored locally.
 
-POST /api/login: Secure user authentication.
+POST /api/login: Admin authentication when ADMIN_USERNAME and ADMIN_PASSWORD are configured.
+
+Provider-dependent routes for AI art, server-side translation/OCR, and premium upgrades return HTTP 503 until their respective providers are integrated. The Flutter app provides on-device Latin OCR and translation on Android/iOS, local poster creation, batch resize/format conversion, flat-color background removal, and image editing. Translation language models require an internet connection to download once, then run on-device. The local background remover is not AI segmentation. Security scanning remains unavailable; selected files are not treated as scanned or safe.
 
 💡 Known Limitations
 OneDrive Syncing: Asset loading may be affected by background OneDrive sync processes. It is recommended to work in a locally excluded folder if build speeds are slow.

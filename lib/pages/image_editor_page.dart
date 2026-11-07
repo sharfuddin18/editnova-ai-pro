@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:flutter_colorpicker/flutter_colorpicker.dart';
-import 'dart:io';
+
+import 'dart:typed_data';
+
+import '../utils/image_adjustments.dart';
 
 class ImageEditorPage extends StatefulWidget {
   const ImageEditorPage({super.key});
@@ -11,19 +15,93 @@ class ImageEditorPage extends StatefulWidget {
 }
 
 class _ImageEditorPageState extends State<ImageEditorPage> {
-  File? _image;
+  Uint8List? _originalImageBytes;
+  Uint8List? _previewImageBytes;
   final ImagePicker _picker = ImagePicker();
   double _brightness = 0.0;
   double _contrast = 0.0;
   double _saturation = 0.0;
-  Color _filterColor = Colors.transparent;
+  bool _isProcessing = false;
+  bool _isSaving = false;
 
   Future<void> _pickImage(ImageSource source) async {
-    final XFile? image = await _picker.pickImage(source: source);
-    if (image != null) {
+    try {
+      final image = await _picker.pickImage(source: source);
+      if (image == null) return;
+      final bytes = await image.readAsBytes();
+      if (!mounted) return;
       setState(() {
-        _image = File(image.path);
+        _originalImageBytes = bytes;
+        _previewImageBytes = bytes;
+        _brightness = 0;
+        _contrast = 0;
+        _saturation = 0;
       });
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Unable to open image: $error')));
+    }
+  }
+
+  Future<void> _applyAdjustments() async {
+    final bytes = _originalImageBytes;
+    if (bytes == null || _isProcessing) return;
+
+    setState(() => _isProcessing = true);
+    try {
+      final preview = await compute(
+        adjustImageBytes,
+        ImageAdjustmentRequest(
+          bytes: bytes,
+          brightness: 1 + _brightness,
+          contrast: 1 + _contrast,
+          saturation: 1 + _saturation,
+        ),
+      );
+      if (!mounted) return;
+      setState(() => _previewImageBytes = preview);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Unable to process image: $error')),
+      );
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
+    }
+  }
+
+  Future<void> _saveImage() async {
+    final bytes = _previewImageBytes;
+    if (bytes == null || _isSaving) return;
+
+    setState(() => _isSaving = true);
+    try {
+      final path = await FilePicker.platform.saveFile(
+        dialogTitle: 'Save edited image',
+        fileName: 'editnova-${DateTime.now().millisecondsSinceEpoch}.png',
+        bytes: bytes,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            path != null
+                ? 'Image saved to $path'
+                : kIsWeb
+                ? 'Image download started.'
+                : 'Save canceled.',
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Unable to save image: $error')));
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 
@@ -59,33 +137,6 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
     );
   }
 
-  void _showColorPicker() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Pick a color filter'),
-          content: SingleChildScrollView(
-            child: ColorPicker(
-              pickerColor: _filterColor,
-              onColorChanged: (Color color) {
-                setState(() {
-                  _filterColor = color;
-                });
-              },
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Done'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -94,12 +145,10 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
         actions: [
           IconButton(
             icon: Icon(Icons.save),
-            onPressed: _image != null
-                ? () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Image saved successfully!')),
-                    );
-                  }
+            tooltip: 'Save edited image',
+            onPressed:
+                _previewImageBytes != null && !_isProcessing && !_isSaving
+                ? _saveImage
                 : null,
           ),
         ],
@@ -115,36 +164,23 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
                 border: Border.all(color: Colors.grey),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: _image != null
+              child: _previewImageBytes != null
                   ? ClipRRect(
                       borderRadius: BorderRadius.circular(12),
-                      child: ColorFiltered(
-                        colorFilter: ColorFilter.mode(
-                          _filterColor.withValues(alpha: 0.3),
-                          BlendMode.overlay,
-                        ),
-                        child: Image.file(
-                          _image!,
-                          fit: BoxFit.contain,
-                        ),
+                      child: Image.memory(
+                        _previewImageBytes!,
+                        fit: BoxFit.contain,
                       ),
                     )
                   : Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(
-                            Icons.image,
-                            size: 64,
-                            color: Colors.grey,
-                          ),
+                          Icon(Icons.image, size: 64, color: Colors.grey),
                           SizedBox(height: 16),
                           Text(
                             'No image selected',
-                            style: TextStyle(
-                              fontSize: 18,
-                              color: Colors.grey,
-                            ),
+                            style: TextStyle(fontSize: 18, color: Colors.grey),
                           ),
                           SizedBox(height: 16),
                           ElevatedButton(
@@ -176,6 +212,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
                   _buildSlider('Saturation', _saturation, (value) {
                     setState(() => _saturation = value);
                   }),
+                  if (_isProcessing) const LinearProgressIndicator(),
                   SizedBox(height: 16),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -186,9 +223,11 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
                         label: Text('Add Image'),
                       ),
                       ElevatedButton.icon(
-                        onPressed: _showColorPicker,
-                        icon: Icon(Icons.color_lens),
-                        label: Text('Filter'),
+                        onPressed: _originalImageBytes == null || _isProcessing
+                            ? null
+                            : _applyAdjustments,
+                        icon: Icon(Icons.tune),
+                        label: Text('Apply adjustments'),
                       ),
                     ],
                   ),
@@ -202,7 +241,10 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
   }
 
   Widget _buildSlider(
-      String label, double value, ValueChanged<double> onChanged) {
+    String label,
+    double value,
+    ValueChanged<double> onChanged,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -213,7 +255,8 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
           max: 1.0,
           divisions: 20,
           label: value.toStringAsFixed(1),
-          onChanged: onChanged,
+          onChanged: _isProcessing ? null : onChanged,
+          onChangeEnd: _isProcessing ? null : (_) => _applyAdjustments(),
         ),
       ],
     );

@@ -1,6 +1,9 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'dart:convert';
+
+import '../network/api_config.dart';
 
 class StatsWidget extends StatefulWidget {
   const StatsWidget({super.key});
@@ -10,13 +13,8 @@ class StatsWidget extends StatefulWidget {
 }
 
 class _StatsWidgetState extends State<StatsWidget> {
-  Map<String, dynamic> stats = {
-    "active_users": 0,
-    "premium_users": 0,
-    "background_removed": 0,
-    "files_scanned": 0,
-    "threats_blocked": 0
-  };
+  Map<String, dynamic>? _stats;
+  bool _hasLoaded = false;
 
   @override
   void initState() {
@@ -26,96 +24,107 @@ class _StatsWidgetState extends State<StatsWidget> {
 
   Future<void> _loadStats() async {
     try {
-      final response =
-          await http.get(Uri.parse('http://localhost:5001/api/usage'));
-      if (response.statusCode == 200) {
-        setState(() {
-          stats = json.decode(response.body);
-        });
+      final response = await http
+          .get(apiUri('usage'))
+          .timeout(const Duration(seconds: 8));
+      if (response.statusCode != 200) {
+        throw const FormatException('Usage data is unavailable.');
       }
-    } catch (e) {
-      // Use default values if API is not available
+
+      final decoded = jsonDecode(response.body);
+      if (decoded is! Map<String, dynamic>) {
+        throw const FormatException('Invalid usage response.');
+      }
+      if (!mounted) return;
       setState(() {
-        stats = {
-          "active_users": 1203,
-          "premium_users": 205,
-          "background_removed": 540,
-          "files_scanned": 134,
-          "threats_blocked": 3
-        };
+        _stats = decoded;
+        _hasLoaded = true;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _stats = null;
+        _hasLoaded = true;
       });
     }
   }
 
+  String _value(String key) {
+    final value = _stats?[key];
+    return value is num ? value.toString() : '—';
+  }
+
   @override
   Widget build(BuildContext context) {
+    final stats = _stats;
     return Card(
       child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Usage Statistics',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                fontFamily: 'Montserrat',
+        padding: const EdgeInsets.all(16),
+        child: stats == null
+            ? Center(
+                child: Text(
+                  _hasLoaded
+                      ? 'Usage statistics unavailable'
+                      : 'Loading usage statistics...',
+                ),
+              )
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Usage Statistics',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildStatItem('Active users', _value('active_users')),
+                      _buildStatItem('Premium', _value('premium_users')),
+                      _buildStatItem(
+                        'Backgrounds',
+                        _value('background_removed'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildStatItem('Files scanned', _value('files_scanned')),
+                      _buildStatItem(
+                        'Threats blocked',
+                        _value('threats_blocked'),
+                      ),
+                      const SizedBox(width: 80),
+                    ],
+                  ),
+                ],
               ),
-            ),
-            SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildStatItem('Active Users', stats['active_users'].toString(),
-                    Icons.people),
-                _buildStatItem(
-                    'Premium', stats['premium_users'].toString(), Icons.star),
-                _buildStatItem('BG Removed',
-                    stats['background_removed'].toString(), Icons.layers_clear),
-              ],
-            ),
-            SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildStatItem('Files Scanned',
-                    stats['files_scanned'].toString(), Icons.scanner),
-                _buildStatItem('Threats Blocked',
-                    stats['threats_blocked'].toString(), Icons.security),
-                _buildStatItem('', '', Icons.trending_up),
-              ],
-            ),
-          ],
-        ),
       ),
     );
   }
 
-  Widget _buildStatItem(String label, String value, IconData icon) {
-    if (label.isEmpty) return SizedBox(width: 80);
-
-    return Column(
-      children: [
-        Icon(icon, color: Theme.of(context).primaryColor, size: 24),
-        SizedBox(height: 4),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Theme.of(context).primaryColor,
+  Widget _buildStatItem(String label, String value) {
+    return SizedBox(
+      width: 88,
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).colorScheme.primary,
+            ),
           ),
-        ),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 10,
-            color: Colors.grey[600],
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelSmall,
+            textAlign: TextAlign.center,
           ),
-          textAlign: TextAlign.center,
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class NovaAssistantPage extends StatefulWidget {
   const NovaAssistantPage({super.key});
@@ -17,7 +18,7 @@ class _NovaAssistantPageState extends State<NovaAssistantPage>
   bool _isListening = false;
   String _text = 'Press the button and start speaking';
   String _response =
-      'Hello! I\'m Nova, your AI assistant. How can I help you today?';
+      'I use speech recognition and local keyword responses. Generative AI is not configured.';
   double _confidence = 1.0;
 
   late AnimationController _animationController;
@@ -51,7 +52,18 @@ class _NovaAssistantPageState extends State<NovaAssistantPage>
     await Permission.microphone.request();
   }
 
-  void _listen() async {
+  Future<void> _listen() async {
+    final preferences = await SharedPreferences.getInstance();
+    if (preferences.getBool('voiceCommands') == false) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Voice commands are disabled in Settings.'),
+        ),
+      );
+      return;
+    }
+
     if (!_isListening) {
       bool available = await _speech.initialize();
       if (available) {
@@ -86,17 +98,17 @@ class _NovaAssistantPageState extends State<NovaAssistantPage>
     if (command.contains('hello') || command.contains('hi')) {
       return 'Hello! How can I assist you with your editing tasks today?';
     } else if (command.contains('edit') || command.contains('image')) {
-      return 'I can help you with image editing! You can use our advanced image editor with filters, brightness, and contrast controls.';
+      return 'The image editor supports local brightness, contrast, and saturation adjustments, and can save the edited image.';
     } else if (command.contains('background') || command.contains('remove')) {
-      return 'Our background remover can instantly remove backgrounds from your images using AI technology.';
+      return 'Background removal is unavailable because no image-processing service is configured.';
     } else if (command.contains('scan') || command.contains('file')) {
-      return 'The file scanner can help you scan and organize your files while checking for potential threats.';
+      return 'You can select files, but no security scanning service is configured and no safety verdict is produced.';
     } else if (command.contains('help')) {
-      return 'I can help you with image editing, background removal, file scanning, and general app navigation. What would you like to do?';
+      return 'I can describe the available local image adjustments and voice controls. Generative AI, background removal, and security scanning are not configured.';
     } else if (command.contains('thank')) {
       return 'You\'re welcome! I\'m always here to help with your editing needs.';
     } else {
-      return 'I understand you said: "$command". I can help with image editing, background removal, and file scanning. What would you like to do?';
+      return 'I heard: "$command". I respond using local keyword rules; generative AI is not configured.';
     }
   }
 
@@ -248,10 +260,12 @@ class _NovaAssistantPageState extends State<NovaAssistantPage>
                       Spacer(),
                       FloatingActionButton.extended(
                         onPressed: _listen,
-                        backgroundColor:
-                            _isListening ? Colors.red : Colors.white,
-                        foregroundColor:
-                            _isListening ? Colors.white : Colors.deepPurple,
+                        backgroundColor: _isListening
+                            ? Colors.red
+                            : Colors.white,
+                        foregroundColor: _isListening
+                            ? Colors.white
+                            : Colors.deepPurple,
                         icon: Icon(_isListening ? Icons.stop : Icons.mic),
                         label: Text(
                           _isListening ? 'Stop' : 'Talk to Nova',

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+
 import 'dart:convert';
+
+import '../network/api_config.dart';
 
 class AIArtGeneratorPage extends StatefulWidget {
   const AIArtGeneratorPage({super.key});
@@ -14,7 +17,7 @@ class _AIArtGeneratorPageState extends State<AIArtGeneratorPage>
   final TextEditingController _promptController = TextEditingController();
   String _selectedStyle = 'Abstract';
   bool _isGenerating = false;
-  String? _generatedArtId;
+  String? _generatedArtUrl;
   late AnimationController _generateController;
   late AnimationController _pulseController;
 
@@ -56,7 +59,7 @@ class _AIArtGeneratorPageState extends State<AIArtGeneratorPage>
 
     try {
       final response = await http.post(
-        Uri.parse('http://localhost:5001/api/generate-art'),
+        apiUri('generate-art'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'description': _promptController.text,
@@ -64,32 +67,41 @@ class _AIArtGeneratorPageState extends State<AIArtGeneratorPage>
         }),
       );
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-
-        await Future.delayed(const Duration(seconds: 3));
-
-        if (!mounted) return;
-
-        setState(() {
-          _generatedArtId = data['artId'];
-        });
-
-        if (!mounted) return;
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('AI artwork generated successfully! 🎨'),
-            backgroundColor: Colors.green,
-          ),
+      final data = jsonDecode(response.body);
+      if (response.statusCode != 200) {
+        final message = data is Map<String, dynamic> ? data['message'] : null;
+        throw Exception(
+          message is String ? message : 'Artwork generation failed.',
         );
       }
+
+      final imageUrl = data is Map<String, dynamic> ? data['imageUrl'] : null;
+      final uri = imageUrl is String ? Uri.tryParse(imageUrl) : null;
+      if (uri == null || uri.scheme != 'https' || uri.host.isEmpty) {
+        throw const FormatException(
+          'The AI service did not return a valid artwork image.',
+        );
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _generatedArtUrl = imageUrl;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('AI artwork generated successfully.'),
+          backgroundColor: Colors.green,
+        ),
+      );
     } catch (e) {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to generate artwork'),
+        SnackBar(
+          content: Text(
+            'Unable to generate artwork: ${e.toString().replaceFirst('Exception: ', '')}',
+          ),
         ),
       );
     } finally {
@@ -110,16 +122,12 @@ class _AIArtGeneratorPageState extends State<AIArtGeneratorPage>
       appBar: AppBar(
         title: Text(
           'AI Art Generator',
-          style:
-              TextStyle(fontFamily: 'Montserrat', fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontFamily: 'Montserrat',
+            fontWeight: FontWeight.bold,
+          ),
         ),
         backgroundColor: Colors.purple,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.palette),
-            onPressed: () => _showArtGallery(),
-          ),
-        ],
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(16),
@@ -206,8 +214,7 @@ class _AIArtGeneratorPageState extends State<AIArtGeneratorPage>
                       controller: _promptController,
                       maxLines: 3,
                       decoration: InputDecoration(
-                        hintText:
-                            'e.g., A majestic mountain landscape with flowing waterfalls and vibrant sunset colors...',
+                        hintText: 'e.g., A majestic mountain landscape with flowing waterfalls and vibrant sunset colors...',
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -221,23 +228,28 @@ class _AIArtGeneratorPageState extends State<AIArtGeneratorPage>
                     Wrap(
                       spacing: 8,
                       runSpacing: 4,
-                      children: [
-                        'Fantasy castle',
-                        'Cyberpunk city',
-                        'Peaceful garden',
-                        'Abstract colors',
-                        'Ocean waves',
-                        'Space nebula'
-                      ]
-                          .map((prompt) => GestureDetector(
-                                onTap: () => _promptController.text = prompt,
-                                child: Chip(
-                                  label: Text(prompt,
-                                      style: TextStyle(fontSize: 10)),
-                                  backgroundColor: Colors.purple.shade100,
+                      children:
+                          [
+                                'Fantasy castle',
+                                'Cyberpunk city',
+                                'Peaceful garden',
+                                'Abstract colors',
+                                'Ocean waves',
+                                'Space nebula',
+                              ]
+                              .map(
+                                (prompt) => GestureDetector(
+                                  onTap: () => _promptController.text = prompt,
+                                  child: Chip(
+                                    label: Text(
+                                      prompt,
+                                      style: TextStyle(fontSize: 10),
+                                    ),
+                                    backgroundColor: Colors.purple.shade100,
+                                  ),
                                 ),
-                              ))
-                          .toList(),
+                              )
+                              .toList(),
                     ),
                   ],
                 ),
@@ -343,10 +355,7 @@ class _AIArtGeneratorPageState extends State<AIArtGeneratorPage>
                     : Icon(Icons.auto_awesome),
                 label: Text(
                   _isGenerating ? 'Generating Artwork...' : 'Generate AI Art',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.purple,
@@ -361,7 +370,7 @@ class _AIArtGeneratorPageState extends State<AIArtGeneratorPage>
             SizedBox(height: 16),
 
             // Generated Artwork Display
-            if (_generatedArtId != null) ...[
+            if (_generatedArtUrl != null) ...[
               Card(
                 child: Padding(
                   padding: EdgeInsets.all(16),
@@ -375,82 +384,25 @@ class _AIArtGeneratorPageState extends State<AIArtGeneratorPage>
                         ),
                       ),
                       SizedBox(height: 16),
-                      Container(
+                      SizedBox(
                         width: double.infinity,
                         height: 300,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              Colors.purple.shade100,
-                              Colors.pink.shade100
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.grey.shade300),
-                        ),
-                        child: Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.image,
-                                size: 80,
-                                color: Colors.purple.shade300,
-                              ),
-                              SizedBox(height: 12),
-                              Text(
-                                'AI Generated Artwork',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.purple.shade600,
-                                  fontWeight: FontWeight.bold,
+                        child: Image.network(
+                          _generatedArtUrl!,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const Center(
+                                child: Text(
+                                  'The artwork image could not be loaded.',
                                 ),
                               ),
-                              Text(
-                                '$_selectedStyle Style',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.purple.shade500,
-                                ),
-                              ),
-                            ],
-                          ),
                         ),
                       ),
                       SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          ElevatedButton.icon(
-                            onPressed: () => _saveArtwork(),
-                            icon: Icon(Icons.save),
-                            label: Text('Save'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
-                              foregroundColor: Colors.white,
-                            ),
-                          ),
-                          ElevatedButton.icon(
-                            onPressed: () => _shareArtwork(),
-                            icon: Icon(Icons.share),
-                            label: Text('Share'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue,
-                              foregroundColor: Colors.white,
-                            ),
-                          ),
-                          ElevatedButton.icon(
-                            onPressed: () => _regenerateArt(),
-                            icon: Icon(Icons.refresh),
-                            label: Text('Retry'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.orange,
-                              foregroundColor: Colors.white,
-                            ),
-                          ),
-                        ],
+                      ElevatedButton.icon(
+                        onPressed: _regenerateArt,
+                        icon: Icon(Icons.refresh),
+                        label: Text('Generate Again'),
                       ),
                     ],
                   ),
@@ -463,99 +415,11 @@ class _AIArtGeneratorPageState extends State<AIArtGeneratorPage>
     );
   }
 
-  void _saveArtwork() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Artwork saved to gallery!')),
-    );
-  }
-
-  void _shareArtwork() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Artwork shared successfully!')),
-    );
-  }
-
   void _regenerateArt() {
     setState(() {
-      _generatedArtId = null;
+      _generatedArtUrl = null;
     });
     _generateArt();
-  }
-
-  void _showArtGallery() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.7,
-        maxChildSize: 0.9,
-        minChildSize: 0.5,
-        builder: (context, scrollController) => Container(
-          padding: EdgeInsets.all(16),
-          child: Column(
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              SizedBox(height: 16),
-              Text(
-                'AI Art Gallery',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              SizedBox(height: 16),
-              Expanded(
-                child: GridView.builder(
-                  controller: scrollController,
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 8,
-                    mainAxisSpacing: 8,
-                  ),
-                  itemCount: 8,
-                  itemBuilder: (context, index) => Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.primaries[index % Colors.primaries.length]
-                              .shade200,
-                          Colors.primaries[index % Colors.primaries.length]
-                              .shade400,
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.image, size: 40, color: Colors.white),
-                          SizedBox(height: 8),
-                          Text(
-                            'Artwork #${index + 1}',
-                            style: TextStyle(color: Colors.white, fontSize: 12),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 }
 
